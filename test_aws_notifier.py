@@ -1,4 +1,4 @@
-from modules.Notifier import Notifier
+from modules.AWSNotifier import Notifier
 
 
 def main():
@@ -9,8 +9,7 @@ def main():
 
     subject = "Test"
     body = "success"
-    notifier.generate_message(subject, body)
-    notifier.send_message()
+    notifier.send_message(subject, body)
 
 
 if __name__ == "__main__":

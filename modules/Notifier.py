@@ -1,5 +1,6 @@
-import smtplib
 from email.message import EmailMessage
+import smtplib
+import os
 
 
 class Notifier:
@@ -8,20 +9,34 @@ class Notifier:
         self.email_recipient = email_recipient
         self.subject_prefix = subject_prefix
 
-    def send_mail(self, subject, body, subject_prefix=True):
+        self.message = None
+
+    def generate_message(self, subject, body, subject_prefix=True):
         if subject_prefix:
             subject = self.subject_prefix + subject
 
-        message = EmailMessage()
+        self.message = EmailMessage()
 
-        message["Subject"] = subject
-        message["From"] = self.email_sender
-        message["To"] = self.email_recipient
-        message.set_content(body)
+        self.message["Subject"] = subject
+        self.message["From"] = self.email_sender
+        self.message["To"] = self.email_recipient
+        self.message.set_content(body)
 
-        s = smtplib.SMTP('localhost')
-        s.send_message(message)
-        s.quit()
+    def send_message(self, aws=False):
+        if not aws:
+            server = smtplib.SMTP('localhost')
+            server.send_message(self.message)
+            server.close()
 
-        # if status != 0:
-        #     print("Sendmail exit status", status)
+        else:
+            username = os.environ['USERNAME']
+            password = os.environ['PASSWORD']
+            host = os.environ['SMTPHOST']
+            port = os.environ['SMTPPORT']
+
+            server = smtplib.SMTP(host, port)
+            server.ehlo()
+            server.starttls()
+            server.login(username, password)
+            server.send_message(self.message)
+            server.close()
