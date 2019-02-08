@@ -22,21 +22,7 @@ class Notifier:
         self.message["To"] = self.email_recipient
         self.message.set_content(body)
 
-    def send_message(self, aws=False):
-        if not aws:
-            server = smtplib.SMTP('localhost')
-            server.send_message(self.message)
-            server.close()
-
-        else:
-            username = os.environ['USERNAME']
-            password = os.environ['PASSWORD']
-            host = os.environ['SMTPHOST']
-            port = os.environ['SMTPPORT']
-
-            server = smtplib.SMTP(host, port)
-            server.ehlo()
-            server.starttls()
-            server.login(username, password)
-            server.send_message(self.message)
-            server.close()
+    def send_message(self):
+        server = smtplib.SMTP('localhost')
+        server.send_message(self.message)
+        server.close()

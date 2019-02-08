@@ -21,17 +21,17 @@ class Notifier:
         aws_region = "us-west-2"
 
         # The HTML body of the email.
-        body_html = """<html>
-        <head></head>
-        <body>
-          <h1>Amazon SES Test (SDK for Python)</h1>
-          <p>This email was sent with
-            <a href='https://aws.amazon.com/ses/'>Amazon SES</a> using the
-            <a href='https://aws.amazon.com/sdk-for-python/'>
-              AWS SDK for Python (Boto)</a>.</p>
-        </body>
-        </html>
-                    """
+        # body_html = """<html>
+        # <head></head>
+        # <body>
+        #   <h3>Amazon SES Test (SDK for Python)</h3>
+        #   <p>This email was sent with
+        #     <a href='https://aws.amazon.com/ses/'>Amazon SES</a> using the
+        #     <a href='https://aws.amazon.com/sdk-for-python/'>
+        #       AWS SDK for Python (Boto)</a>.</p>
+        # </body>
+        # </html>
+        #             """
 
         # The character encoding for the email.
         charset = "UTF-8"
@@ -50,10 +50,10 @@ class Notifier:
                 },
                 Message={
                     'Body': {
-                        'Html': {
-                            'Charset': charset,
-                            'Data': body_html,
-                        },
+                        # 'Html': {
+                        #     'Charset': charset,
+                        #     'Data': body_html,
+                        # },
                         'Text': {
                             'Charset': charset,
                             'Data': body,
