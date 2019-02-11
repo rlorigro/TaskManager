@@ -65,12 +65,12 @@ class ResourceMonitor:
                         "disk_usage_total_gb":10,
                         "disk_usage_percent":11}
 
-        self.normalized_types = {"time_elapsed_s",
-                                 "io_activity_read_mb",
+        self.normalized_types = {"io_activity_read_mb",
                                  "io_activity_write_mb",
                                  "io_activity_read_count",
                                  "io_activity_write_count"}
 
+        self.start_time = None
         self.counter = 0
 
     def update_history(self, data):
@@ -83,6 +83,7 @@ class ResourceMonitor:
         ensureDirectoryExists(self.output_dir)
 
         checkpoint_time = time()
+        self.start_time = checkpoint_time
 
         with open(self.log_path, "w") as file:
             header_line = [item[0] for item in sorted(self.headers.items(), key=lambda x: x[1])]
@@ -163,6 +164,9 @@ class ResourceMonitor:
             # If psutil gives absolute (cumulative) values, then subtract the baseline for each interval
             if key in self.normalized_types:
                 value -= self.history[-2][key]
+
+            if key == "time_elapsed_s":
+                value -= self.start_time
 
             line.append("%.3f" % value)
 

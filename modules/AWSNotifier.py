@@ -3,7 +3,7 @@ from botocore.exceptions import ClientError
 
 
 class Notifier:
-    def __init__(self, email_sender, email_recipient, subject_prefix="<automated>"):
+    def __init__(self, email_sender, email_recipient, subject_prefix="<automated> "):
         # This address must be verified with Amazon SES.
         self.email_sender = email_sender
 
@@ -14,6 +14,14 @@ class Notifier:
         self.message = None
 
     def send_message(self, subject, body, subject_prefix=True):
+        """
+        Send an email through AWS SES. Adapted from AWS' own docs on using boto3:
+        https://docs.aws.amazon.com/ses/latest/DeveloperGuide/send-using-sdk-python.html
+        :param subject:
+        :param body:
+        :param subject_prefix:
+        :return:
+        """
         if subject_prefix:
             subject = self.subject_prefix + subject
 
