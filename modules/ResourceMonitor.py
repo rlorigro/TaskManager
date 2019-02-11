@@ -39,7 +39,7 @@ def ensureDirectoryExists(directoryPath, i=0):
 class ResourceMonitor:
     def __init__(self, output_dir, interval, alarm_interval=60):
         self.output_dir = output_dir
-        self.log_filename = "log" + getDatetimeString() + ".txt"
+        self.log_filename = "log_" + getDatetimeString() + ".txt"
         self.log_path = os.path.join(output_dir, self.log_filename)
 
         self.primary_partition = None
