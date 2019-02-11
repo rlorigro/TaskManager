@@ -3,7 +3,7 @@ from botocore.exceptions import ClientError
 
 
 class Notifier:
-    def __init__(self, email_sender, email_recipient, subject_prefix="<automated> "):
+    def __init__(self, email_sender, email_recipient, subject_prefix="<automated> ", max_cumulative_attempts=20):
         # This address must be verified with Amazon SES.
         self.email_sender = email_sender
 
@@ -12,6 +12,15 @@ class Notifier:
 
         self.subject_prefix = subject_prefix
         self.message = None
+
+        # Have any emails been successfully sent?
+        self.sent = False
+
+        # Do not allow this Notifier to attempt to send more than this many emails
+        self.max_cumulative_attempts = max_cumulative_attempts
+
+        # How many attempts have been made
+        self.attempts = 0
 
     def send_message(self, subject, body, subject_prefix=True):
         """
@@ -22,6 +31,12 @@ class Notifier:
         :param subject_prefix:
         :return:
         """
+        # Check whether limit has been exceeded
+        if self.attempts > self.max_cumulative_attempts:
+            print("WARNING: max email attempts exceeded for this Notifier, max=%d, sent=%d" % \
+                  (self.max_cumulative_attempts, self.attempts))
+            return
+
         if subject_prefix:
             subject = self.subject_prefix + subject
 
@@ -60,6 +75,10 @@ class Notifier:
         # Display an error if something goes wrong.
         except ClientError as e:
             print(e.response['Error']['Message'])
+            self.sent = False
         else:
             print("Email sent! Message ID:"),
             print(response['MessageId'])
+            self.sent = True
+
+        self.attempts += 1
