@@ -2,6 +2,7 @@ from collections import deque
 from datetime import datetime
 from time import time
 import psutil
+import sys
 import os
 
 
@@ -109,7 +110,6 @@ class ResourceMonitor:
 
     def set_primary_partition(self, partition_name):
         partition_name = os.path.basename(partition_name)
-        print(partition_name)
         self.primary_partition = partition_name
 
     @staticmethod
@@ -153,8 +153,7 @@ class ResourceMonitor:
         return data
 
     def format_data_as_line(self, data):
-        print()
-        print(self.counter)
+        sys.stdout.write("\rintervals elapsed: %d" % self.counter)
 
         line = list()
         for item in sorted(self.headers.items(), key=lambda x: x[1]):
