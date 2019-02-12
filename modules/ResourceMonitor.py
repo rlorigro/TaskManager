@@ -64,7 +64,7 @@ def ensure_directory_exists(directory_path):
 
 class ResourceMonitor:
     def __init__(self, output_dir, interval, alarm_interval=60, s3_upload_bucket=None, s3_upload_path=None,
-                 s3_upload_interval=300):
+                 s3_upload_interval=300, logfile=None):
 
         self.output_dir = output_dir
         datetime_string = get_datetime_string()
@@ -113,15 +113,24 @@ class ResourceMonitor:
         self.s3_upload_interval = s3_upload_interval
         self.upload_to_s3 = s3_upload_bucket is not None and s3_upload_path is not None
 
+        self.app_logfile = logfile
+
     def update_history(self, data):
         self.history.append(data)
 
         if len(self.history) > self.history_size:
             self.history.popleft()
 
+    def log(self, msg):
+        if self.app_logfile is None:
+            print(msg, file=sys.stderr)
+        else:
+            with open(self.app_logfile, 'a') as logfile:
+                print(msg, file=logfile)
+
     def launch(self):
         ensure_directory_exists(self.output_dir)
-        print("Writing to log file: %s" % os.path.abspath(self.log_path))
+        self.log("Writing to log file: %s" % os.path.abspath(self.log_path))
 
         checkpoint_time = time()
         upload_time = time()
@@ -148,9 +157,9 @@ class ResourceMonitor:
                         self.upload_data_to_s3()
                     except Exception as e:
                         # do not die
-                        print("Error uploading to S3: {}".format(e))
+                        self.log("Error uploading to S3: {}".format(e))
                         self.s3_upload_interval = self.s3_upload_interval * 2
-                        print("Changing upload interval to: {}s".format(self.s3_upload_interval))
+                        self.log("Changing upload interval to: {}s".format(self.s3_upload_interval))
                     upload_time = time()
 
                 if self.interval > 1:
@@ -160,8 +169,7 @@ class ResourceMonitor:
     def list_primary_partitions():
         disk_partitions = psutil.disk_partitions()
 
-        for partition in disk_partitions:
-            print(partition.device)
+        return disk_partitions
 
     def set_primary_partition(self, partition_name):
         partition_name = os.path.basename(partition_name)
@@ -214,7 +222,7 @@ class ResourceMonitor:
         return data
 
     def format_data_as_line(self, data):
-        print("intervals elapsed: %d" % self.counter)
+        self.log("intervals elapsed: %d" % self.counter)
 
         line = list()
         for item in sorted(self.headers.items(), key=lambda x: x[1]):
@@ -236,6 +244,6 @@ class ResourceMonitor:
 
     def upload_data_to_s3(self):
         endpoint = os.path.join(self.s3_upload_path, self.log_filename)
-        print("Uploading {} to s3://{}/{}".format(self.log_path, self.s3_upload_bucket, endpoint))
+        self.log("Uploading {} to s3://{}/{}".format(self.log_path, self.s3_upload_bucket, endpoint))
         s3 = boto3.resource('s3')
         s3.meta.client.upload_file(self.log_path, self.s3_upload_bucket, endpoint)

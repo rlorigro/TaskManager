@@ -4,8 +4,7 @@ import os
 import errno
 
 
-def \
-        main(args):
+def main(args):
     if not os.path.isdir(args.output_dir):
         try:
             os.makedirs(args.output_dir)
@@ -17,7 +16,7 @@ def \
 
     monitor = ResourceMonitor(output_dir=args.output_dir, interval=args.interval,
                               s3_upload_bucket=args.s3_upload_bucket, s3_upload_path=args.s3_upload_path,
-                              s3_upload_interval=args.s3_upload_interval)
+                              s3_upload_interval=args.s3_upload_interval, logfile=args.logfile)
 
     monitor.launch()
 
@@ -58,6 +57,12 @@ if __name__ == "__main__":
                              "Can use custom python formatting parameters (need ':' prepended) including: "
                              "'instance_id', 'timestamp', 'date'.  "
                              "Default: 'logs/resource_monitor/{date}_{instance_id}/' ")
+    parser.add_argument('--logfile', '-l',
+                        dest='logfile',
+                        required=False,
+                        default=None,
+                        type=str,
+                        help="write script logs to file (defaults to stderr)")
 
     args = parser.parse_args()
     main(args)
