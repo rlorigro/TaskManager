@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--output_dir', '-o', dest='output_dir', required=False, default="output", type=str,
                         help="output folder")
-    parser.add_argument('--interval', '-i', dest='interval', required=False, default=15, type=int,
+    parser.add_argument('--interval', '-i', dest='interval', required=False, default=5, type=int,
                         help="interval (in seconds) for sampling")
     parser.add_argument('--s3_upload_interval', '-I', dest='s3_upload_interval', required=False, default=300, type=int,
                         help="interval (in seconds) for sampling")
