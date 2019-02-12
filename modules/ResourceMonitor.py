@@ -45,15 +45,12 @@ def get_instance_identification():
     return instance_id
 
 
-def ensure_directory_exists(directory_path, i=0):
+def ensure_directory_exists(directory_path):
     """
-    Recursively test directories in a directory path and generate missing directories as needed
+    Recursively generate missing directories as needed
     :param directory_path:
     :return:
     """
-    if i > 3:
-        print("WARNING: generating subdirectories of depth %d, please verify path is correct: %s" % (i, directory_path))
-
     if not os.path.exists(directory_path):
 
         try:

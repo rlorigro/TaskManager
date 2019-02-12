@@ -22,20 +22,37 @@ def main(args):
 
 
 if __name__ == "__main__":
-
-
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--output_dir', '-o', dest='output_dir', required=False, default="output", type=str,
+    parser.add_argument('--output_dir', '-o',
+                        dest='output_dir',
+                        required=False,
+                        default="output",
+                        type=str,
                         help="output folder")
-    parser.add_argument('--interval', '-i', dest='interval', required=False, default=15, type=int,
+    parser.add_argument('--interval', '-i',
+                        dest='interval',
+                        required=False,
+                        default=15,
+                        type=int,
                         help="interval (in seconds) for sampling")
-    parser.add_argument('--s3_upload_interval', '-I', dest='s3_upload_interval', required=False, default=300, type=int,
+    parser.add_argument('--s3_upload_interval', '-I',
+                        dest='s3_upload_interval',
+                        required=False,
+                        default=300,
+                        type=int,
                         help="interval (in seconds) for sampling")
-    parser.add_argument('--s3_upload_bucket', '-b', dest='s3_upload_bucket', required=False, default=None, type=str,
+    parser.add_argument('--s3_upload_bucket', '-b',
+                        dest='s3_upload_bucket',
+                        required=False,
+                        default=None,
+                        type=str,
                         help="bucket (s3:// is not required) for file uploading.  Setting this triggers upload.")
-    parser.add_argument('--s3_upload_path', '-p', dest='s3_upload_path', required=False,
-                        default="logs/resource_monitor/{date}_{instance_id}/", type=str,
+    parser.add_argument('--s3_upload_path', '-p',
+                        dest='s3_upload_path',
+                        required=False,
+                        default="logs/resource_monitor/{date}_{instance_id}/",
+                        type=str,
                         help="s3 location (no bucket) where logs should be uploaded.  "
                              "Can use custom python formatting parameters (need ':' prepended) including: "
                              "'instance_id', 'timestamp', 'date'.  "

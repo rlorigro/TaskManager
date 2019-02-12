@@ -1,5 +1,4 @@
 from matplotlib import pyplot
-from ResourceMonitor import ResourceMonitor
 from collections import defaultdict
 
 
