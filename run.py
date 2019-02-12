@@ -55,7 +55,7 @@ if __name__ == "__main__":
                         dest="recipient",
                         required=True,
                         type=str,
-                        help="The email recipient. For AWS, this must be validated within SES console")
+                        help="A comma-separted list of email recipients (ie 'user1@domain.com,user2@domain.com'). For AWS, this must be validated within SES console")
 
     parser.add_argument("--from",
                         dest="sender",

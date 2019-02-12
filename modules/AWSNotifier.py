@@ -3,12 +3,12 @@ from botocore.exceptions import ClientError
 
 
 class Notifier:
-    def __init__(self, email_sender, email_recipient, subject_prefix="<automated> ", max_cumulative_attempts=10):
+    def __init__(self, email_sender, email_recipients, subject_prefix="<automated> ", max_cumulative_attempts=10):
         # This address must be verified with Amazon SES.
         self.email_sender = email_sender
 
         # is still in the sandbox, this address must be verified.
-        self.email_recipient = email_recipient
+        self.email_recipients = email_recipients
 
         self.subject_prefix = subject_prefix
         self.message = None
@@ -54,9 +54,8 @@ class Notifier:
             # Provide the contents of the email.
             response = client.send_email(
                 Destination={
-                    'ToAddresses': [
-                        self.email_recipient,
-                    ],
+                    'ToAddresses':
+                        self.email_recipients,
                 },
                 Message={
                     'Body': {
