@@ -37,6 +37,13 @@ def main(file_path, output_dir):
     headers, header_indexes, data = read_tsv(file_path)
     figure, axes = plot_resource_data(headers=headers, data=data, show=True)
 
+    output_filename_prefix = os.path.basename(file_path).split(".")[0]
+    output_filename = output_filename_prefix + ".png"
+    output_path = os.path.join(output_dir, output_filename)
+
+    print("Saving figure as: %s" % output_path)
+    figure.savefig(output_path, dpi=300)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
