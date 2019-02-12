@@ -35,7 +35,9 @@ def string_as_bool(s):
 
 
 def space_separated_list(s):
+    print(s)
     tokens = s.strip().split(" ")
+    print(tokens)
     return tokens
 
 
@@ -47,8 +49,7 @@ if __name__ == "__main__":
     parser.add_argument("--command", "-c",
                         dest="command",
                         required=True,
-                        type=str,
-                        nargs="+",
+                        type=space_separated_list,
                         help="The command to be run inside a subprocess and monitored with email notification")
 
     parser.add_argument("--to",
