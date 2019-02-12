@@ -50,7 +50,44 @@ def get_y_max(key, y):
     return y_max
 
 
-def plot_resource_data(headers, data):
+def get_y_label(key):
+    labels = {"cpu_percent":"CPU (%)",
+              "virtual_memory_percent":"Virtual Memory (%)",
+              "disk_usage_percent":"Disk Usage (%)",
+              "swap_memory_percent":"Swap Memory (%)",
+              "io_activity_read_mb":"IO Read (MB)",
+              "io_activity_write_mb":"IO Write (MB)",
+              "io_activity_read_count":"IO Reads (#)",
+              "io_activity_write_count":"IO Writes (#)"}
+
+    label = labels[key]
+
+    return label
+
+
+def rescale_time(time):
+    time = [x/60 for x in time]
+
+    return time
+
+
+def get_absolute_y_labels(data, y_percent, key):
+    totals_keys = {"virtual_memory_percent":"virtual_memory_total_gb",
+                   "disk_usage_percent":"disk_usage_total_gb",
+                   "swap_memory_percent":"swap_memory_total_gb"}
+
+    total_key = totals_keys[key]
+    total_available = data[total_key][0]
+
+    max_used = max(y_percent)/100*total_available
+
+    max_used = int(round(max_used))
+    total_available = int(round(total_available))
+
+    return max_used, total_available
+
+
+def plot_resource_data(headers, data, show=False):
     time_series_axes = {"cpu_percent":             (0,0),
                         "virtual_memory_percent":  (0,1),
                         "disk_usage_percent":      (1,0),
@@ -60,9 +97,12 @@ def plot_resource_data(headers, data):
                         "io_activity_read_count":  (3,0),
                         "io_activity_write_count": (3,1)}
 
-    figure, axes = pyplot.subplots(nrows=4, ncols=2)
+    n_rows = 4
+    n_cols = 2
+    figure, axes = pyplot.subplots(nrows=n_rows, ncols=n_cols)
 
     x = data["time_elapsed_s"]
+    x = rescale_time(x)
     zeros = [0 for i in range(len(x))]
 
     for key in time_series_axes:
@@ -70,29 +110,50 @@ def plot_resource_data(headers, data):
         y = data[key]
 
         color = get_color(key)
+        line_width = 0.5
 
         y_max = get_y_max(y=y, key=key)
 
         if key.endswith("percent"):
-            axes[a][b].plot([x[0], x[-1]], [y_max, y_max], linestyle="--", color=color)
+            axes[a][b].plot([x[0], x[-1]], [y_max, y_max], linestyle="--", color=color, linewidth=line_width)
+
+            if not key.startswith("cpu"):
+                max_used, total_available = get_absolute_y_labels(data=data, y_percent=y, key=key)
+                max_used = str(max_used) + " GB"
+                total_available = str(total_available) + " GB"
+
+                twin_axes = axes[a][b].twinx()
+                twin_axes.tick_params(axis='off', left='off', top='off', right='off', bottom='off',
+                                      labelleft='off', labeltop='off', labelright='on', labelbottom='off')
+                twin_axes.set_yticks([max(y), y_max])
+
+                twin_axes.set_yticklabels([max_used, total_available])
+                twin_axes.set_ylim(0, y_max*1.1)
 
         axes[a][b].set_ylim(0, y_max*1.1)
-        axes[a][b].set_title(" ".join(key.split("_")))
-        axes[a][b].plot(x,data[key], color=color)
+        axes[a][b].set_ylabel(get_y_label(key))
+        axes[a][b].set_title(" ".join(key.split("_")[:-1]))
+        axes[a][b].plot(x,data[key], color=color, linewidth=line_width)
         axes[a][b].fill_between(x,y1=zeros, y2=y, color=color, alpha=0.3)
 
-    figure.set_size_inches(8,16)
-    pyplot.subplots_adjust(hspace=0.6)
+        if a == n_rows - 1:
+            axes[a][b].set_xlabel("Time (min)")
 
-    pyplot.show()
-    pyplot.close()
+    figure.set_size_inches(8,16)
+    pyplot.subplots_adjust(hspace=0.5, wspace=0.7)
+
+    if show:
+        pyplot.show()
+        pyplot.close()
+
+    return figure, axes
 
 
 def main():
-    file_path = "/home/ryan/code/TaskManager/output/log_2019_2_10_18_36_0_754749.txt"
+    file_path = "/home/ryan/code/TaskManager/output/racon_run_x1e_8xlarge_wg_human/log_2019_2_11_17_33_19_458174.txt"
 
     headers, header_indexes, data = read_tsv(file_path)
-    plot_resource_data(headers=headers, data=data)
+    figure, axes = plot_resource_data(headers=headers, data=data, show=True)
 
 
 if __name__ == "__main__":
