@@ -1,11 +1,49 @@
+from modules.Notifier import Notifier
+from modules.AWSNotifier import Notifier as AWSNotifier
+from modules.ResourceMonitor import get_instance_identification
+from time import time
 import subprocess
 import sys
 import gc
 
 
 class ProcessHandler:
-    def __init__(self,  process=None):
-        self.process = process
+    def __init__(self, aws=True, email_sender=None, email_recipient=None):
+        self.email_sender = email_sender
+        self.email_recipient = email_recipient
+        self.aws = aws
+
+        self.process = None
+        self.arguments = None
+        self.start_time = None
+        self.end_time = None
+
+        if aws:
+            self.notifier = AWSNotifier(email_sender=email_sender, email_recipient=email_recipient)
+        else:
+            self.notifier = Notifier(email_sender=email_sender, email_recipient=email_recipient)
+
+    def get_machine_name(self):
+        if self.aws:
+            prefix = "instance "
+            suffix = get_instance_identification()
+            name = prefix + suffix
+
+        else:
+            name = "local machine"
+
+        return name
+
+    def send_notification(self):
+        argument_string = " ".join(self.arguments)
+        machine_name = self.get_machine_name()
+        time_elapsed = (self.end_time - self.start_time)/60
+
+        subject = "Process concluded"
+        body = "Process with the following arguments: \n\t%s \non %s has concluded after %.2f minutes." % \
+               (argument_string, machine_name, time_elapsed)
+
+        self.notifier.send_message(subject, body)
 
     def get_pid(self):
         if self.process is not None:
@@ -13,12 +51,15 @@ class ProcessHandler:
         else:
             return None
 
-    def launch_process(self, arguments, working_directory, wait):
-        if self.process is None:
+    def launch_process(self, arguments, working_directory="."):
+        self.arguments = arguments
 
+        if self.process is None:
+            self.start_time = time()
             self.process = subprocess.Popen(arguments, cwd=working_directory)
-            if wait:
-                self.process.wait()
+            self.process.wait()
+            self.end_time = time()
+            self.send_notification()
 
         else:
             exit("ERROR: process already launched")
@@ -32,6 +73,7 @@ class ProcessHandler:
         :return:
         """
         self.kill()     # goodbye cruel world
+        self.send_notification()
 
         sys.stderr.write("\nERROR: script terminated or interrupted killing subprocess: %d\n" % self.process.pid)
 

@@ -3,7 +3,7 @@ from botocore.exceptions import ClientError
 
 
 class Notifier:
-    def __init__(self, email_sender, email_recipient, subject_prefix="<automated> ", max_cumulative_attempts=20):
+    def __init__(self, email_sender, email_recipient, subject_prefix="<automated> ", max_cumulative_attempts=10):
         # This address must be verified with Amazon SES.
         self.email_sender = email_sender
 
@@ -75,7 +75,6 @@ class Notifier:
         # Display an error if something goes wrong.
         except ClientError as e:
             print(e.response['Error']['Message'])
-            self.sent = False
         else:
             print("Email sent! Message ID:"),
             print(response['MessageId'])

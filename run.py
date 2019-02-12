@@ -1,0 +1,60 @@
+from modules.ProcessHandler import ProcessHandler
+import argparse
+import sys
+
+
+def main(command, aws, sender, recipient):
+    handler = ProcessHandler(aws=aws, email_sender=sender, email_recipient=recipient)
+    handler.launch_process(command)
+
+
+def space_separated_arguments(string):
+    arguments = string.strip().split(" ")
+    return arguments
+
+
+def string_as_bool(s):
+    s = s.lower()
+    boolean = None
+
+    if s in {"t", "true", "1", "y", "yes"}:
+        boolean = True
+    elif s in {"f", "false", "0", "n", "no"}:
+        boolean = False
+    else:
+        exit("Error: invalid argument specified for boolean flag: %s" % s)
+
+    return boolean
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.register("type", "bool", string_as_bool)
+
+    parser.add_argument("--command", "-c",
+                        dest="command",
+                        required=True,
+                        type=str,
+                        nargs="+",
+                        help="The command to be run inside a subprocess and monitored with email notification")
+
+    parser.add_argument("--to",
+                        dest="recipient",
+                        required=True,
+                        type=str,
+                        help="The email recipient. For AWS, this must be validated within SES console")
+
+    parser.add_argument("--from",
+                        dest="sender",
+                        required=True,
+                        type=str,
+                        help="The email sender. For AWS, this must be validated within SES console")
+
+    parser.add_argument("--aws",
+                        required=False,
+                        default="True",
+                        type=string_as_bool,
+                        help="Whether to use AWS SES or simple local SMTP server")
+
+    args = parser.parse_args()
+    main(command=args.command, aws=args.aws, sender=args.sender, recipient=args.recipient)

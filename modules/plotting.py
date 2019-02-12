@@ -35,7 +35,7 @@ def get_color(key):
     elif "memory" in key:
         color = (0.945, 0.71, 0.176)
     else:
-        exit("ERROR: unspecified element in data")
+        exit("ERROR: invalid element in data, no corresponding color: %s" % key)
 
     return color
 
