@@ -11,19 +11,21 @@ import socket
 import boto3
 
 
-def getDatetimeString():
+def get_datetime_string():
     """
     Generate a datetime string. Useful for making output folders names that never conflict.
     """
     return datetime.now().strftime("%Y%m%d-%H%M%S-%f")
 
-def getDateString():
+
+def get_date_string():
     """
     Generate a date string. Useful for identifying output folders.
     """
     return datetime.now().strftime("%Y%m%d")
 
-def getInstanceIdentification():
+
+def get_instance_identification():
     """
     Gets an identifier for an instance.  Gets EC2 instanceId if possible, else local hostname
     """
@@ -43,21 +45,18 @@ def getInstanceIdentification():
     return instance_id
 
 
-def ensureDirectoryExists(directoryPath, i=0):
+def ensure_directory_exists(directory_path):
     """
-    Recursively test directories in a directory path and generate missing directories as needed
-    :param directoryPath:
+    Recursively generate missing directories as needed
+    :param directory_path:
     :return:
     """
-    if i > 3:
-        print("WARNING: generating subdirectories of depth %d, please verify path is correct: %s" % (i, directoryPath))
-
-    if not os.path.exists(directoryPath):
+    if not os.path.exists(directory_path):
 
         try:
-            os.makedirs(directoryPath)
+            os.makedirs(directory_path)
         except OSError as exc:
-            if exc.errno == errno.EEXIST and os.path.isdir(directoryPath):
+            if exc.errno == errno.EEXIST and os.path.isdir(directory_path):
                 pass
             else:
                 raise
@@ -66,10 +65,11 @@ def ensureDirectoryExists(directoryPath, i=0):
 class ResourceMonitor:
     def __init__(self, output_dir, interval, alarm_interval=60, s3_upload_bucket=None, s3_upload_path=None,
                  s3_upload_interval=300):
+
         self.output_dir = output_dir
-        datetime_string = getDatetimeString()
-        date = getDateString()
-        instance_identifier = getInstanceIdentification()
+        datetime_string = get_datetime_string()
+        date = get_date_string()
+        instance_identifier = get_instance_identification()
         self.log_filename = "log_{}_{}.txt".format(datetime_string, instance_identifier)
         self.log_path = os.path.join(output_dir, self.log_filename)
 
@@ -105,14 +105,13 @@ class ResourceMonitor:
 
         if s3_upload_bucket is not None:
             s3_upload_bucket = s3_upload_bucket.lstrip("s3://")
+
         self.s3_upload_bucket = s3_upload_bucket
         self.s3_upload_path = s3_upload_path.format(
             instance_id=instance_identifier, timestamp=datetime_string, date=date).lstrip("/")
 
         self.s3_upload_interval = s3_upload_interval
         self.upload_to_s3 = s3_upload_bucket is not None and s3_upload_path is not None
-
-
 
     def update_history(self, data):
         self.history.append(data)
@@ -121,7 +120,7 @@ class ResourceMonitor:
             self.history.popleft()
 
     def launch(self):
-        ensureDirectoryExists(self.output_dir)
+        ensure_directory_exists(self.output_dir)
         print("Writing to log file: %s" % os.path.abspath(self.log_path))
 
         checkpoint_time = time()
@@ -154,7 +153,8 @@ class ResourceMonitor:
                         print("Changing upload interval to: {}s".format(self.s3_upload_interval))
                     upload_time = time()
 
-                sleep(1)
+                if self.interval > 1:
+                    sleep(1)
 
     @staticmethod
     def list_primary_partitions():
