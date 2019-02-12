@@ -39,7 +39,7 @@ if __name__ == "__main__":
                         help="s3 location (no bucket) where logs should be uploaded.  "
                              "Can use custom python formatting parameters (need ':' prepended) including: "
                              "'instance_id', 'timestamp'.  "
-                             "Default: 'logs/resource_usage/{:instance_id}/' ")
+                             "Default: 'logs/resource_usage/{instance_id}/' ")
 
     args = parser.parse_args()
     main(args)
