@@ -1,10 +1,17 @@
 from modules.ProcessHandler import ProcessHandler
 import argparse
+import signal
 import sys
 
 
 def main(command, aws, sender, recipient):
     handler = ProcessHandler(aws=aws, email_sender=sender, email_recipient=recipient)
+
+    # Setup termination handling to deallocate large page memory, unmount on-disk page data, and delete disk data
+    # This is done by mapping the signal handler to the member function of an instance of ProcessHandler
+    signal.signal(signal.SIGTERM, handler.handle_exit)
+    signal.signal(signal.SIGINT, handler.handle_exit)
+
     handler.launch_process(command)
 
 
