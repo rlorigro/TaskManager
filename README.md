@@ -11,4 +11,5 @@ Tested on ubuntu 18
 
 ### Example output
 Given that a log has been created, it can then be plotted using `plot_resource_usage.py`:
-![plot of log file](TaskManager/log_2019_2_11_17_33_19_458174.png)
+
+![plot of log file](https://github.com/rlorigro/TaskManager/raw/master/log_2019_2_11_17_33_19_458174.png)
