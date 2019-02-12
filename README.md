@@ -4,6 +4,7 @@ Monitors resources and sends notifications. Uses AWS SES to send emails (if vali
 ### Requirements
 python3:
   - psutil
+  - boto3 (for AWS compatibility)
 
 ### Compatibility
 Tested on ubuntu 18
