@@ -34,9 +34,15 @@ def string_as_bool(s):
     return boolean
 
 
+def space_separated_list(s):
+    tokens = s.strip().split(" ")
+    return tokens
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.register("type", "bool", string_as_bool)
+    parser.register("type", "space_separated_list", space_separated_list)
 
     parser.add_argument("--command", "-c",
                         dest="command",
