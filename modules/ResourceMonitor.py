@@ -111,6 +111,7 @@ class ResourceMonitor:
 
     def launch(self):
         ensureDirectoryExists(self.output_dir)
+        print("Writing to log file: %s" % os.path.abspath(self.log_path))
 
         checkpoint_time = time()
         upload_time = time()
