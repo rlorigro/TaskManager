@@ -4,9 +4,9 @@ import os
 
 
 class Notifier:
-    def __init__(self, email_sender, email_recipient, max_cumulative_attempts=10, subject_prefix="<automated> "):
+    def __init__(self, email_sender, email_recipients, max_cumulative_attempts=10, subject_prefix="<automated> "):
         self.email_sender = email_sender
-        self.email_recipient = email_recipient
+        self.email_recipients = email_recipients
         self.subject_prefix = subject_prefix
 
         self.message = None
@@ -26,7 +26,7 @@ class Notifier:
 
         self.message["Subject"] = subject
         self.message["From"] = self.email_sender
-        self.message["To"] = self.email_recipient
+        self.message["To"] = self.email_recipients
         self.message.set_content(body)
 
     def send_message(self, subject, body):
