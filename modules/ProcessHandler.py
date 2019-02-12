@@ -74,10 +74,12 @@ class ProcessHandler:
         :param frame:
         :return:
         """
-        self.kill()     # goodbye cruel world
+        self.end_time = time()
         self.send_notification()
 
         sys.stderr.write("\nERROR: script terminated or interrupted killing subprocess: %d\n" % self.process.pid)
+
+        self.kill()     # goodbye cruel world
 
         exit(1)
 
