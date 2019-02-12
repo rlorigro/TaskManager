@@ -17,7 +17,16 @@ def getDatetimeString():
     """
     return datetime.now().strftime("%Y%m%d-%H%M%S-%f")
 
+def getDateString():
+    """
+    Generate a date string. Useful for identifying output folders.
+    """
+    return datetime.now().strftime("%Y%m%d")
+
 def getInstanceIdentification():
+    """
+    Gets an identifier for an instance.  Gets EC2 instanceId if possible, else local hostname
+    """
     instance_id = socket.gethostname()
     try:
         # "special tactics" for getting instance data inside EC2
@@ -59,6 +68,7 @@ class ResourceMonitor:
                  s3_upload_interval=300):
         self.output_dir = output_dir
         datetime_string = getDatetimeString()
+        date = getDateString()
         instance_identifier = getInstanceIdentification()
         self.log_filename = "log_{}_{}.txt".format(datetime_string, instance_identifier)
         self.log_path = os.path.join(output_dir, self.log_filename)
@@ -96,7 +106,8 @@ class ResourceMonitor:
         if s3_upload_bucket is not None:
             s3_upload_bucket = s3_upload_bucket.lstrip("s3://")
         self.s3_upload_bucket = s3_upload_bucket
-        self.s3_upload_path = s3_upload_path.format(instance_id=instance_identifier, timestamp=datetime_string).lstrip("/")
+        self.s3_upload_path = s3_upload_path.format(
+            instance_id=instance_identifier, timestamp=datetime_string, date=date).lstrip("/")
 
         self.s3_upload_interval = s3_upload_interval
         self.upload_to_s3 = s3_upload_bucket is not None and s3_upload_path is not None
