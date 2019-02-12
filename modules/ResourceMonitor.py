@@ -1,20 +1,37 @@
 from collections import deque
 from datetime import datetime
-from time import time
+from time import time, sleep
 import psutil
 import sys
 import os
+import errno
+import subprocess
+import json
+import socket
+import boto3
 
 
 def getDatetimeString():
     """
     Generate a datetime string. Useful for making output folders names that never conflict.
     """
-    now = datetime.now()
-    now = [now.year, now.month, now.day, now.hour, now.minute, now.second, now.microsecond]
-    datetimeString = "_".join(list(map(str, now)))
+    return datetime.now().strftime("%Y%m%d-%H%M%S-%f")
 
-    return datetimeString
+def getInstanceIdentification():
+    instance_id = socket.gethostname()
+    try:
+        # "special tactics" for getting instance data inside EC2
+        instance_data = subprocess.check_output(
+            ["curl", "--silent", "http://169.254.169.254/latest/dynamic/instance-identity/document"])
+        # convert from json to dict
+        instance_data = json.loads(instance_data)
+        # get the instanceId
+        if 'instanceId' in instance_data:
+            instance_id = instance_data['instanceId']
+    except:
+        pass
+
+    return instance_id
 
 
 def ensureDirectoryExists(directoryPath, i=0):
@@ -27,20 +44,23 @@ def ensureDirectoryExists(directoryPath, i=0):
         print("WARNING: generating subdirectories of depth %d, please verify path is correct: %s" % (i, directoryPath))
 
     if not os.path.exists(directoryPath):
+
         try:
-            os.mkdir(directoryPath)
-
-        except FileNotFoundError:
-            ensureDirectoryExists(os.path.dirname(directoryPath), i=i + 1)
-
-            if not os.path.exists(directoryPath):
-                os.mkdir(directoryPath)
+            os.makedirs(directoryPath)
+        except OSError as exc:
+            if exc.errno == errno.EEXIST and os.path.isdir(directoryPath):
+                pass
+            else:
+                raise
 
 
 class ResourceMonitor:
-    def __init__(self, output_dir, interval, alarm_interval=60):
+    def __init__(self, output_dir, interval, alarm_interval=60, s3_upload_bucket=None, s3_upload_path=None,
+                 s3_upload_interval=300):
         self.output_dir = output_dir
-        self.log_filename = "log_" + getDatetimeString() + ".txt"
+        datetime_string = getDatetimeString()
+        instance_identifier = getInstanceIdentification()
+        self.log_filename = "log_{}_{}.txt".format(datetime_string, instance_identifier)
         self.log_path = os.path.join(output_dir, self.log_filename)
 
         self.primary_partition = None
@@ -73,6 +93,16 @@ class ResourceMonitor:
         self.start_time = None
         self.counter = 0
 
+        if s3_upload_bucket is not None:
+            s3_upload_bucket = s3_upload_bucket.lstrip("s3://")
+        self.s3_upload_bucket = s3_upload_bucket
+        self.s3_upload_path = s3_upload_path.format(instance_id=instance_identifier, timestamp=datetime_string).lstrip("/")
+
+        self.s3_upload_interval = s3_upload_interval
+        self.upload_to_s3 = s3_upload_bucket is not None and s3_upload_path is not None
+
+
+
     def update_history(self, data):
         self.history.append(data)
 
@@ -83,24 +113,36 @@ class ResourceMonitor:
         ensureDirectoryExists(self.output_dir)
 
         checkpoint_time = time()
+        upload_time = time()
         self.start_time = checkpoint_time
 
-        with open(self.log_path, "w") as file:
-            header_line = [item[0] for item in sorted(self.headers.items(), key=lambda x: x[1])]
-            header_line = "\t".join(header_line) + "\n"
-            file.write(header_line)
+        self.write_header()
 
-            while True:
-                if time() - checkpoint_time > self.interval:
-                    checkpoint_time = time()
+        while True:
+            if time() - checkpoint_time > self.interval:
 
-                    data = self.get_resource_data()
-                    self.update_history(data)
-                    line = self.format_data_as_line(data)
+                # get data and write to file
+                data = self.get_resource_data()
+                self.update_history(data)
+                line = self.format_data_as_line(data)
+                with open(self.log_path, 'a') as file:
                     file.write(line)
-                    file.flush()
 
-                    self.counter += 1
+                self.counter += 1
+                checkpoint_time = time()
+
+                # upload to s3 (if appropriate)
+                if self.upload_to_s3 and time() - upload_time > self.s3_upload_interval:
+                    try:
+                        self.upload_data_to_s3()
+                    except Exception as e:
+                        # do not die
+                        print("Error uploading to S3: {}".format(e))
+                        self.s3_upload_interval = self.s3_upload_interval * 2
+                        print("Changing upload interval to: {}s".format(self.s3_upload_interval))
+                    upload_time = time()
+
+                sleep(1)
 
     @staticmethod
     def list_primary_partitions():
@@ -124,6 +166,12 @@ class ResourceMonitor:
                 break
 
         return primary_partition
+
+    def write_header(self):
+        with open(self.log_path, "w") as file:
+            header_line = [item[0] for item in sorted(self.headers.items(), key=lambda x: x[1])]
+            header_line = "\t".join(header_line) + "\n"
+            file.write(header_line)
 
     def get_resource_data(self):
         data = dict()
@@ -154,7 +202,7 @@ class ResourceMonitor:
         return data
 
     def format_data_as_line(self, data):
-        sys.stdout.write("\rintervals elapsed: %d" % self.counter)
+        print("intervals elapsed: %d" % self.counter)
 
         line = list()
         for item in sorted(self.headers.items(), key=lambda x: x[1]):
@@ -173,3 +221,9 @@ class ResourceMonitor:
         line = "\t".join(line) + "\n"
 
         return line
+
+    def upload_data_to_s3(self):
+        endpoint = os.path.join(self.s3_upload_path, self.log_filename)
+        print("Uploading {} to s3://{}/{}".format(self.log_path, self.s3_upload_bucket, endpoint))
+        s3 = boto3.resource('s3')
+        s3.meta.client.upload_file(self.log_path, self.s3_upload_bucket, endpoint)
