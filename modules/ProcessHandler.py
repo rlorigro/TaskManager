@@ -53,12 +53,20 @@ class ProcessHandler:
         else:
             return None
 
-    def launch_process(self, arguments, working_directory="."):
+    def launch_process(self, arguments, working_directory=".", redirect_path=None):
         self.arguments = arguments
+        print("RUNNING: %s" % " ".join(arguments))
 
         if self.process is None:
             self.start_time = time()
-            self.process = subprocess.Popen(arguments, cwd=working_directory)
+
+            if redirect_path is None:
+                self.process = subprocess.Popen(arguments, cwd=working_directory)
+            else:
+                with open(redirect_path, "w") as output_file:
+                    print("REDIRECTING TO: ", redirect_path, "\n")
+                    self.process = subprocess.Popen(arguments, cwd=working_directory, stdout=output_file)
+
             self.process.wait()
             self.end_time = time()
             self.send_notification()

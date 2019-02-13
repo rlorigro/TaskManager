@@ -4,13 +4,13 @@ import signal
 import sys
 
 
-def main(command, aws, sender, recipient):
+def main(command, aws, sender, recipient, redirect_path):
     handler = ProcessHandler(aws=aws, email_sender=sender, email_recipient=recipient)
 
     signal.signal(signal.SIGTERM, handler.handle_exit)
     signal.signal(signal.SIGINT, handler.handle_exit)
 
-    handler.launch_process(command)
+    handler.launch_process(command, redirect_path=redirect_path)
 
 
 def space_separated_arguments(string):
@@ -33,9 +33,7 @@ def string_as_bool(s):
 
 
 def space_separated_list(s):
-    print(s)
     tokens = s.strip().split(" ")
-    print(tokens)
     return tokens
 
 
@@ -68,5 +66,10 @@ if __name__ == "__main__":
                         type=string_as_bool,
                         help="Whether to use AWS SES or simple local SMTP server")
 
+    parser.add_argument("--redirect",
+                        required=False,
+                        type=str,
+                        help="File name to redirect to")
+
     args = parser.parse_args()
-    main(command=args.command, aws=args.aws, sender=args.sender, recipient=args.recipient)
+    main(command=args.command, aws=args.aws, sender=args.sender, recipient=args.recipient, redirect_path=args.redirect)
