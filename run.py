@@ -66,7 +66,7 @@ if __name__ == "__main__":
                         type=string_as_bool,
                         help="Whether to use AWS SES or simple local SMTP server")
 
-    parser.add_argument("--redirect",
+    parser.add_argument("--redirect", "-r",
                         required=False,
                         type=str,
                         help="File name to redirect to")
