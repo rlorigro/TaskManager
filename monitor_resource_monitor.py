@@ -50,17 +50,18 @@ class ErrorTracker:
                 self.update_log(log_file=file, tmp_file_path=tmp_file_path)
 
                 # Get relevant data
-                header, averages = self.read_log(file, tmp_file_path)
+                if os.path.exists(tmp_file_path):
+                    header, averages = self.read_log(file, tmp_file_path)
 
-                # Check resource usage
-                self.check_resource_usage_thresholds(header=header, averages=averages, log_id=file.id)
+                    # Check resource usage
+                    self.check_resource_usage_thresholds(header=header, averages=averages, log_id=file.id)
+    
+            # Send notification if necessary
+            sufficient_time_elapsed = (time()/60 - self.last_notification/60 >= self.alarm_interval)
+            errors_exist = len(self.errors_per_log) > 0
 
-                # Send notification if necessary
-                sufficient_time_elapsed = (time()/60 - self.last_notification/60 >= self.alarm_interval)
-                errors_exist = len(self.errors_per_log) > 0
-
-                if sufficient_time_elapsed and errors_exist:
-                    self.send_notification()
+            if sufficient_time_elapsed and errors_exist:
+                self.send_notification()
 
             # don't leave these around
             if os.path.isfile(self.tmp_dir): os.remove(self.tmp_dir)
@@ -123,19 +124,16 @@ class ErrorTracker:
         last_lines = deque()
         line_count = 0
 
-        try:
-            with open(tmp_file_path, 'r') as log_file_in:
-                for line in log_file_in:
-                    if header is None:
-                        header = {key: i for i, key in enumerate(line.strip().split("\t"))}
-                        continue
-                    line_count += 1
+        with open(tmp_file_path, 'r') as log_file_in:
+            for line in log_file_in:
+                if header is None:
+                    header = {key: i for i, key in enumerate(line.strip().split("\t"))}
+                    continue
+                line_count += 1
 
-                    last_lines.append(line)
-                    if line_count > line_count:
-                        last_lines.popleft()
-        except Exception as e:
-            print(tmp_file_path, e)
+                last_lines.append(line)
+                if line_count > line_count:
+                    last_lines.popleft()
 
         # find dead logs (via line counts)
         if log_file.total_lines is not None and line_count <= log_file.total_lines:
@@ -207,7 +205,7 @@ class ErrorTracker:
 
         try:
             s3 = boto3.resource('s3')
-            s3.Bucket(log_file.bucket).download_file(log_file.path, self.tmp_dir)
+            s3.Bucket(log_file.bucket).download_file(log_file.path, tmp_file_path)
 
         except Exception as e:
             self.errors_per_log[log_file.id].append("Exception: {}".format(e))
@@ -266,8 +264,9 @@ def main(args):
 
     if len(files) == 0:
         raise Exception("No source files found!")
-
-    notifier = Notifier(email_recipients=args.recipients, email_sender=args.sender, max_cumulative_attempts=1000)
+    
+    recipients = args.recipients.split(",")
+    notifier = Notifier(email_recipients=recipients, email_sender=args.sender, max_cumulative_attempts=1000)
 
     tracker = ErrorTracker(resource_logs=files,
                            interval=args.interval,
@@ -331,3 +330,4 @@ if __name__ == "__main__":
         raise Exception("One of --sources or --source_file parameter is required")
 
     main(args)
+
