@@ -57,7 +57,7 @@ class ErrorTracker:
                     self.check_resource_usage_thresholds(header=header, averages=averages, log_id=file.id)
     
             # Send notification if necessary
-            sufficient_time_elapsed = (time()/60 - self.last_notification/60 >= self.alarm_interval)
+            sufficient_time_elapsed = ((time() - self.last_notification)/60 >= self.alarm_interval)
             errors_exist = len(self.errors_per_log) > 0
 
             if sufficient_time_elapsed and errors_exist:
@@ -220,6 +220,8 @@ class ErrorTracker:
         body = self.generate_error_message() + "\n" + self.generate_resource_warning_message()
 
         self.notifier.send_message(subject=subject, body=body)
+
+        self.last_notification = time()
 
 
 class ResourceMonitorLogFile:
