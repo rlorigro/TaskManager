@@ -44,8 +44,10 @@ class ErrorTracker:
             self.resource_warnings_per_log = defaultdict(list)
 
             for file in self.resource_logs:
+                tmp_file_path = os.path.join(args.tmp_dir, file.filename)
+
                 # Re-download files
-                self.update_log(log_file=file)
+                self.update_log(log_file=file, tmp_file_path=tmp_file_path)
 
                 # Get relevant data
                 header, averages = self.read_log(file)
@@ -111,7 +113,7 @@ class ErrorTracker:
 
         return error_message
 
-    def read_log(self, log_file):
+    def read_log(self, log_file, tmp_file_path):
         """
         Get relevant data from the resource log to print summaries and to decide whether to send a notification
         :param log_file:
@@ -121,7 +123,7 @@ class ErrorTracker:
         last_lines = deque()
         line_count = 0
 
-        with open(self.tmp_dir, 'r') as log_file_in:
+        with open(tmp_file_path, 'r') as log_file_in:
             for line in log_file_in:
                 if header is None:
                     header = {key: i for i, key in enumerate(line.strip().split("\t"))}
@@ -189,12 +191,17 @@ class ErrorTracker:
         elif averages[VIRTUAL_MEMORY_PERCENT] > 90:
             self.resource_warnings_per_log.append("Memory usage above 90%: {}".format(averages[VIRTUAL_MEMORY_PERCENT]))
 
-    def update_log(self, log_file):
+    def update_log(self, tmp_file_path, log_file):
         """
         Query s3 to get latest log files
         :param log_file:
         :return:
         """
+        if os.path.isfile(tmp_file_path):
+            print("Removing existing file: {}".format(tmp_file_path))
+
+        os.remove(tmp_file_path)
+
         try:
             s3 = boto3.resource('s3')
             s3.Bucket(log_file.bucket).download_file(log_file.path, self.tmp_dir)
