@@ -123,16 +123,19 @@ class ErrorTracker:
         last_lines = deque()
         line_count = 0
 
-        with open(tmp_file_path, 'r') as log_file_in:
-            for line in log_file_in:
-                if header is None:
-                    header = {key: i for i, key in enumerate(line.strip().split("\t"))}
-                    continue
-                line_count += 1
+        try:
+            with open(tmp_file_path, 'r') as log_file_in:
+                for line in log_file_in:
+                    if header is None:
+                        header = {key: i for i, key in enumerate(line.strip().split("\t"))}
+                        continue
+                    line_count += 1
 
-                last_lines.append(line)
-                if line_count > line_count:
-                    last_lines.popleft()
+                    last_lines.append(line)
+                    if line_count > line_count:
+                        last_lines.popleft()
+        except Exception as e:
+            print(tmp_file_path, e)
 
         # find dead logs (via line counts)
         if log_file.total_lines is not None and line_count <= log_file.total_lines:
