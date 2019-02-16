@@ -50,7 +50,7 @@ class ErrorTracker:
                 self.update_log(log_file=file, tmp_file_path=tmp_file_path)
 
                 # Get relevant data
-                header, averages = self.read_log(file)
+                header, averages = self.read_log(file, tmp_file_path)
 
                 # Check resource usage
                 self.check_resource_usage_thresholds(header=header, averages=averages, log_id=file.id)
