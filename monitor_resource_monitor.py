@@ -257,7 +257,7 @@ def main(args):
     if len(files) == 0:
         raise Exception("No source files found!")
 
-    notifier = Notifier(email_recipients=args.recipients, email_sender=args.senders, max_cumulative_attempts=1000)
+    notifier = Notifier(email_recipients=args.recipients, email_sender=args.sender, max_cumulative_attempts=1000)
 
     tracker = ErrorTracker(resource_logs=files,
                            interval=args.interval,
@@ -266,6 +266,7 @@ def main(args):
                            tmp_dir=args.tmp_dir,
                            n_lines=args.line_count)
 
+    tracker.start()
 
 
 if __name__ == "__main__":
@@ -303,7 +304,17 @@ if __name__ == "__main__":
                         default=30,
                         type=int,
                         help="how many lines (at the end of the file) to analyze")
+    parser.add_argument("--to",
+                        dest="recipients",
+                        required=True,
+                        type=str,
+                        help="A comma-separted list of email recipients (ie 'user1@domain.com,user2@domain.com'). For AWS, this must be validated within SES console")
 
+    parser.add_argument("--from",
+                        dest="sender",
+                        required=True,
+                        type=str,
+                        help="The email sender. For AWS, this must be validated within SES console")
 
     args = parser.parse_args()
     if args.sources is None and args.source_file is None:
