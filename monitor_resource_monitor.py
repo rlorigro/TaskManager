@@ -200,7 +200,7 @@ class ErrorTracker:
         if os.path.isfile(tmp_file_path):
             print("Removing existing file: {}".format(tmp_file_path))
 
-        os.remove(tmp_file_path)
+            os.remove(tmp_file_path)
 
         try:
             s3 = boto3.resource('s3')
