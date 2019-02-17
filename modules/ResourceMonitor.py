@@ -246,4 +246,5 @@ class ResourceMonitor:
         endpoint = os.path.join(self.s3_upload_path, self.log_filename)
         self.log("Uploading {} to s3://{}/{}".format(self.log_path, self.s3_upload_bucket, endpoint))
         s3 = boto3.resource('s3')
-        s3.meta.client.upload_file(self.log_path, self.s3_upload_bucket, endpoint)
+        s3.meta.client.upload_file(self.log_path, self.s3_upload_bucket, endpoint,
+                                   ExtraArgs={'ACL':'bucket-owner-full-control'}) # this enables upload cross-region (maybe)

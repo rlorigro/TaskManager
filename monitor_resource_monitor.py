@@ -13,7 +13,7 @@ import sys
 
 
 class ErrorTracker:
-    def __init__(self, notifier, resource_logs, tmp_dir, interval, alarm_interval_minutes, n_lines):
+    def __init__(self, notifier, resource_logs, tmp_dir, interval, n_lines):
         """
         Periodically print summaries of log files, and send email warnings if logs show that resource usage has
         exceeded some min/max threshold
@@ -30,18 +30,15 @@ class ErrorTracker:
         self.tmp_dir = tmp_dir
         self.n_lines = n_lines
         self.interval = interval
-        self.alarm_interval = alarm_interval_minutes
 
         # self.averages_per_log = None
         self.errors_per_log = None                  # keep track of these to send one email at end of update
-        self.resource_warnings_per_log = None       # keep track of these to send one email at end of update
 
     def start(self):
         # iterate over all files
         while (True):
             # reset periodic values
             self.errors_per_log = defaultdict(list)
-            self.resource_warnings_per_log = defaultdict(list)
 
             for file in self.resource_logs:
                 tmp_file_path = os.path.join(args.tmp_dir, file.filename)
@@ -51,21 +48,21 @@ class ErrorTracker:
 
                 # Get relevant data
                 if os.path.exists(tmp_file_path):
-                    header, averages = self.read_log(file, tmp_file_path)
+                    averages = self.read_log(file, tmp_file_path)
 
                     # Check resource usage
-                    self.check_resource_usage_thresholds(header=header, averages=averages, log_id=file.id)
+                    self.check_resource_usage_thresholds(averages=averages, log_id=file.id)
+
+                    # remove when done
+                    print("Removing existing file: {}".format(tmp_file_path))
+                    os.remove(tmp_file_path)
     
             # Send notification if necessary
-            sufficient_time_elapsed = ((time() - self.last_notification)/60 >= self.alarm_interval)
-            errors_exist = len(self.errors_per_log) > 0
-
-            if sufficient_time_elapsed and errors_exist:
+            errors_exist = sum(map(len, self.errors_per_log.values())) > 0
+            if errors_exist:
                 self.send_notification()
 
-            # don't leave these around
-            if os.path.isfile(self.tmp_dir): os.remove(self.tmp_dir)
-
+            # iterate
             sleep(self.interval)
 
     def generate_error_message(self):
@@ -75,6 +72,7 @@ class ErrorTracker:
         """
         error_string = ''
         for file_id in self.errors_per_log.keys():
+            if len(self.errors_per_log[file_id]) == 0: continue
             error_string += "{}\n".format(file_id)
             for err in self.errors_per_log[file_id]:
                 error_string += "\t{}\n".format(err)
@@ -84,35 +82,11 @@ class ErrorTracker:
                              "Errors at {}:\n\n{}"
                              "---------------------------------------------------")\
                              .format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_string)
-
-            print(error_message)
         else:
             error_message = ""
 
         return error_message
 
-    def generate_resource_warning_message(self):
-        """
-        Parse resource usage thresholds from last update and generate readable string from them
-        :return:
-        """
-        error_string = ''
-        for file_id in self.resource_warnings_per_log.keys():
-            error_string += "{}\n".format(file_id)
-            for err in self.resource_warnings_per_log[file_id]:
-                error_string += "\t{}\n".format(err)
-
-        if len(error_string) != 0:
-            error_message = ("\n---------------------------------------------------\n"
-                             "Errors at {}:\n\n{}"
-                             "---------------------------------------------------") \
-                .format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), error_string)
-
-            print(error_message)
-        else:
-            error_message = ""
-
-        return error_message
 
     def read_log(self, log_file, tmp_file_path):
         """
@@ -163,34 +137,33 @@ class ErrorTracker:
         for key in header.keys():
             print("\t{}: {}".format(key, averages[key]))
 
-        return header, averages
+        return averages
 
-    def check_resource_usage_thresholds(self, header, log_id, averages):
+    def check_resource_usage_thresholds(self, averages, log_id):
         """
         Test for an alarming usage of resources!
-        :param header:
-        :param log_id:
         :param averages:
+        :param log_id:
         :return:
         """
         CPU_PERCENT = "cpu_percent"
         DISK_USAGE_PERCENT = "disk_usage_percent"
         VIRTUAL_MEMORY_PERCENT = "virtual_memory_percent"
 
-        if CPU_PERCENT not in header:
+        if CPU_PERCENT not in averages:
             self.errors_per_log[log_id].append("missing {} header".format(CPU_PERCENT))
         elif averages[CPU_PERCENT] < 20:
-            self.resource_warnings_per_log.append("CPU usage below 10%: {}".format(averages[CPU_PERCENT]))
+            self.errors_per_log[log_id].append("CPU usage below 20%: {}".format(averages[CPU_PERCENT]))
 
-        if DISK_USAGE_PERCENT not in header:
+        if DISK_USAGE_PERCENT not in averages:
             self.errors_per_log[log_id].append("missing {} header".format(DISK_USAGE_PERCENT))
         elif averages[DISK_USAGE_PERCENT] > 90:
-            self.resource_warnings_per_log.append("Disk usage above 90%: {}".format(averages[DISK_USAGE_PERCENT]))
+            self.errors_per_log[log_id].append("Disk usage above 90%: {}".format(averages[DISK_USAGE_PERCENT]))
 
-        if VIRTUAL_MEMORY_PERCENT not in header:
+        if VIRTUAL_MEMORY_PERCENT not in averages:
             self.errors_per_log[log_id].append("missing {} header".format(VIRTUAL_MEMORY_PERCENT))
         elif averages[VIRTUAL_MEMORY_PERCENT] > 90:
-            self.resource_warnings_per_log.append("Memory usage above 90%: {}".format(averages[VIRTUAL_MEMORY_PERCENT]))
+            self.errors_per_log[log_id].append("Memory usage above 90%: {}".format(averages[VIRTUAL_MEMORY_PERCENT]))
 
     def update_log(self, tmp_file_path, log_file):
         """
@@ -217,9 +190,14 @@ class ErrorTracker:
         :return:
         """
         subject = "Periodic update"
-        body = self.generate_error_message() + "\n" + self.generate_resource_warning_message()
+        body = self.generate_error_message()
+        print(body)
 
-        self.notifier.send_message(subject=subject, body=body)
+        if self.notifier is not None:
+            print("Sending notification email.")
+            self.notifier.send_message(subject=subject, body=body)
+        else:
+            print("WARNING: Not sending notification email.")
 
         self.last_notification = time()
 
@@ -266,13 +244,16 @@ def main(args):
 
     if len(files) == 0:
         raise Exception("No source files found!")
-    
-    recipients = args.recipients.split(",")
-    notifier = Notifier(email_recipients=recipients, email_sender=args.sender, max_cumulative_attempts=1000)
+
+    if args.recipients is not None and args.sender is not None:
+        recipients = args.recipients.split(",")
+        notifier = Notifier(email_recipients=recipients, email_sender=args.sender, max_cumulative_attempts=1000)
+    else:
+        print("\n\nWARNING:\nNo notifications will be sent!\n")
+        notifier = None
 
     tracker = ErrorTracker(resource_logs=files,
                            interval=args.interval,
-                           alarm_interval_minutes=60,
                            notifier=notifier,
                            tmp_dir=args.tmp_dir,
                            n_lines=args.line_count)
@@ -300,7 +281,7 @@ if __name__ == "__main__":
     parser.add_argument('--interval', '-t',
                         dest='interval',
                         required=False,
-                        default=660,
+                        default=900,
                         type=int,
                         help="interval (in seconds) for downloading and verifying")
     parser.add_argument('--tmp_dir', '-d',
@@ -317,13 +298,15 @@ if __name__ == "__main__":
                         help="how many lines (at the end of the file) to analyze")
     parser.add_argument("--to",
                         dest="recipients",
-                        required=True,
+                        required=False,
+                        default=None,
                         type=str,
                         help="A comma-separted list of email recipients (ie 'user1@domain.com,user2@domain.com'). For AWS, this must be validated within SES console")
 
     parser.add_argument("--from",
                         dest="sender",
-                        required=True,
+                        required=False,
+                        default=None,
                         type=str,
                         help="The email sender. For AWS, this must be validated within SES console")
 
