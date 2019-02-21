@@ -1,7 +1,7 @@
 # TaskManager
 Monitors resources and sends notifications. Uses AWS SES to send emails (if valid credentials exist under ~/.aws). Locally, can also send email via SMTP.
 
-## Email notifier usage:
+## Email notifier usage
 
 To use on AWS, you must first have your `~/.aws` credentials configured. The easiest way to do this is to run `aws configure` on your instance. If you haven't already verified your email in the AWS SES console then you also need to go find your email address in the SES email list and click "verify".
 
