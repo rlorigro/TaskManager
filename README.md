@@ -28,7 +28,7 @@ If you want to redirect, i.e. you would usually use a caret:
 echo abc123 > file.txt
 ```
 
-then you must instead use the `-r` flag:
+then you must instead use the `-r` flag instead of the `>`:
 
 ```
 python3 ~/software/TaskManager/run.py \
@@ -50,3 +50,9 @@ Tested on ubuntu 18
 Given that a log has been created, it can then be plotted using `plot_resource_usage.py`:
 
 ![plot of log file](https://github.com/rlorigro/TaskManager/raw/master/log_2019_2_11_17_33_19_458174.png)
+
+## Known issues
+
+At the moment, it seems that relative paths do not function correctly when used inside the `-c` argument. The simple workaround is to specify a full absolute path (`/home/ubuntu/path/to/file`)
+
+
