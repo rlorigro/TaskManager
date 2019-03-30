@@ -38,6 +38,8 @@ class Notifier:
 
         self.generate_message(subject=subject, body=body)
 
+        # SMTP_SERVER = "smtp.gmail.com"
+        # SMTP_PORT = 587
         server = smtplib.SMTP('localhost')
         server.send_message(self.message)
         server.close()

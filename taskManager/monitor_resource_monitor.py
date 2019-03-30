@@ -1,5 +1,4 @@
-from modules.ResourceMonitor import ResourceMonitor
-from modules.AWSNotifier import Notifier
+from taskManager.AWSNotifier import Notifier
 from collections import defaultdict
 from datetime import datetime
 import argparse

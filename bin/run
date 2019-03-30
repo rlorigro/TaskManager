@@ -1,7 +1,6 @@
-from modules.ProcessHandler import ProcessHandler
+from taskManager.ProcessHandler import ProcessHandler
 import argparse
 import signal
-import sys
 
 
 def main(command, aws, sender, recipient, redirect_path):

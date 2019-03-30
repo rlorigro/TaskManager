@@ -1,4 +1,4 @@
-from modules.ResourceMonitor import ResourceMonitor
+from taskManager.ResourceMonitor import ResourceMonitor
 import argparse
 import os
 import errno

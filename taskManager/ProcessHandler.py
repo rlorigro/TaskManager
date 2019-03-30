@@ -1,6 +1,6 @@
-from modules.Notifier import Notifier
-from modules.AWSNotifier import Notifier as AWSNotifier
-from modules.ResourceMonitor import get_instance_identification
+from taskManager.Notifier import Notifier
+from taskManager.AWSNotifier import Notifier as AWSNotifier
+from taskManager.ResourceMonitor import get_instance_identification
 from time import time
 import subprocess
 import sys

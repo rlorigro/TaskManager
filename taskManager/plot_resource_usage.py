@@ -1,4 +1,4 @@
-from modules.plotting import *
+from taskManager.plotting import *
 from datetime import datetime
 import argparse
 import errno
