@@ -8,22 +8,25 @@ import gc
 
 
 class ProcessHandler:
-    def __init__(self, aws=True, email_sender=None, email_recipient=None):
+    def __init__(self, aws=True, email_sender=None, email_recipients=None, source_email=None, source_password=None):
         self.email_sender = email_sender
         self.email_recipients = None
-        if email_recipient is not None:
-            self.email_recipients = email_recipient.split(",")
+        if email_recipients is not None:
+            self.email_recipients = email_recipients
         self.aws = aws
 
         self.process = None
         self.arguments = None
         self.start_time = None
         self.end_time = None
+        self.source_email = source_email
+        self.source_password = source_password
 
         if aws:
             self.notifier = AWSNotifier(email_sender=email_sender, email_recipients=self.email_recipients)
         else:
-            self.notifier = Notifier(email_sender=email_sender, email_recipients=self.email_recipients)
+            self.notifier = Notifier(email_sender=email_sender, email_recipients=self.email_recipients,
+                                     source_password=self.source_password, source_email=self.source_email)
 
     def get_machine_name(self):
         if self.aws:

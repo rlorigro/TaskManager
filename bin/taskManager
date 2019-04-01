@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+from taskManager.ProcessHandler import ProcessHandler
+from taskManager.config_helpers import *
+
+import argparse
+import signal
+
+
+def main(command, aws, sender, recipients, redirect_path, source_email, source_password):
+    handler = ProcessHandler(aws=aws, email_sender=sender, email_recipients=recipients,
+                             source_email=source_email, source_password=source_password)
+
+    signal.signal(signal.SIGTERM, handler.handle_exit)
+    signal.signal(signal.SIGINT, handler.handle_exit)
+
+    handler.launch_process(command, redirect_path=redirect_path)
+
+
+def space_separated_arguments(string):
+    arguments = string.strip().split(" ")
+    return arguments
+
+
+def string_as_bool(s):
+    s = s.lower()
+    boolean = None
+
+    if s in {"t", "true", "1", "y", "yes"}:
+        boolean = True
+    elif s in {"f", "false", "0", "n", "no"}:
+        boolean = False
+    else:
+        exit("Error: invalid argument specified for boolean flag: %s" % s)
+
+    return boolean
+
+
+def space_separated_list(s):
+    tokens = s.strip().split(" ")
+    return tokens
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command")
+
+    # parsers for running the full pipeline
+    run_parser = subparsers.add_parser("run", help="Run command and email when competed")
+    configure_parser = subparsers.add_parser("configure", help="Configure taskManager to send emails to "
+                                                               "the correct location")
+
+    parser.register("type", "bool", string_as_bool)
+    parser.register("type", "space_separated_list", space_separated_list)
+
+    run_parser.add_argument("--command", "-c",
+                            dest="run_command",
+                            required=True,
+                            type=space_separated_list,
+                            help="The command to be run inside a subprocess and monitored with email notification")
+
+    run_parser.add_argument("--redirect", "-r",
+                            required=False,
+                            type=str,
+                            help="File name to redirect to")
+
+    args = parser.parse_args()
+    if args.command == "configure":
+        create_task_manager_config()
+    if args.command == "run":
+        config = get_task_manager_config()
+        main(command=args.run_command, aws=config.aws, sender=config.sender, recipients=config.recipient,
+             redirect_path=args.redirect, source_email=config.source_email, source_password=config.source_password)

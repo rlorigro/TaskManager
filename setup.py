@@ -14,7 +14,7 @@ from setuptools import setup, find_packages
 def main():
     setup(
         name="taskManager",
-        version="0.0.3",
+        version="0.0.5",
         description='Task manager to keep track of compute resources and send email update when command exits',
         url='https://github.com/rlorigro/TaskManager',
         author='Ryan Lorig-Roach, Andrew Bailey',
@@ -23,10 +23,11 @@ def main():
         tests_require=["pytest"],
         author_email='rlorigro@ucsc.edu, andbaile@ucsc.com',
         packages=find_packages(),
-        scripts=['bin/run'],
+        scripts=['bin/taskManager'],
         install_requires=['psutil>=5.6.1',
                           'boto3>=1.9',
-                          'pytest>=4.3.1'],
+                          'pytest>=4.3.1',
+                          'py3helpers>=0.2.4'],
         zip_safe=True
     )
 
