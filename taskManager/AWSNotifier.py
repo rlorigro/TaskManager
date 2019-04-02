@@ -22,7 +22,7 @@ class Notifier:
         # How many attempts have been made
         self.attempts = 0
 
-    def send_message(self, subject, body, subject_prefix=True):
+    def send_message(self, subject, body, subject_prefix=True, attachment=None):
         """
         Send an email through AWS SES. Adapted from AWS' own docs on using boto3:
         https://docs.aws.amazon.com/ses/latest/DeveloperGuide/send-using-sdk-python.html
