@@ -3,9 +3,6 @@
 from taskManager.ProcessHandler import ProcessHandler
 from taskManager.config_helpers import *
 from taskManager.ResourceMonitor import ResourceMonitor
-import time
-import threading
-import datetime
 import argparse
 import signal
 
@@ -124,12 +121,12 @@ def main():
                                  "Can use custom python formatting parameters (need ':' prepended) including: "
                                  "'instance_id', 'timestamp', 'date'.  "
                                  "Default: 'logs/resource_monitor/{date}_{instance_id}/' ")
-    run_parser.add_argument('--logfile',
-                            dest='logfile',
+    run_parser.add_argument('--redirect_stderr',
+                            dest='redirect_stderr',
                             required=False,
                             default=None,
                             type=str,
-                            help="write script logs to file (defaults to stderr)")
+                            help="Redirect stderr to a log file")
     args = parser.parse_args()
 
     if args.command == "configure":
@@ -151,7 +148,7 @@ def main():
         # create resource monitoring class
         monitor = ResourceMonitor(output_dir=output_dir, interval=interval, aws=aws,
                                   s3_upload_bucket=s3_upload_bucket, s3_upload_path=s3_upload_path,
-                                  s3_upload_interval=s3_upload_interval)
+                                  s3_upload_interval=s3_upload_interval, logfile=args.redirect_stderr)
         # start process and track resources
         handler = ProcessHandler(aws=aws, email_sender=sender, email_recipients=recipient,
                                  source_email=source_email, source_password=source_password, resource_monitor=monitor)
@@ -160,6 +157,8 @@ def main():
         signal.signal(signal.SIGINT, handler.handle_exit)
 
         handler.launch_process(args.run_command, redirect_path=redirect)
+        if handler.attachment is not None:
+            os.remove(handler.attachment)
 
 
 if __name__ == "__main__":

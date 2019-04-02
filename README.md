@@ -5,6 +5,22 @@ Monitors resources and sends notifications. Uses AWS SES to send emails (if vali
 
 To use on AWS, you must first have your `~/.aws` credentials configured. The easiest way to do this is to run `aws configure` on your instance. If you haven't already verified your email in the AWS SES console then you also need to go find your email address in the SES email list and click "verify".
 
+#### Recommended Usage:
+Install via pip   
+
+```pip install taskManager```
+
+Configure setup
+
+```taskManager configure```
+
+Run taskManager on some program
+
+```taskManager run -c "your --command goes --here"```
+
+
+#### Optional Usage:
+
 Use this syntax to get an email notification when your command is finished running:
 
 ```
@@ -42,7 +58,8 @@ python3 ~/software/TaskManager/run.py \
 python3:
   - psutil
   - boto3 (for AWS compatibility)
-
+  - py3helpers
+ 
 ### Compatibility
 Tested on ubuntu 18
 

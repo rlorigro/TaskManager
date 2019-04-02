@@ -73,9 +73,12 @@ class ResourceMonitor:
         if aws:
             instance_identifier = get_instance_identification()
             self.log_filename = "log_{}_{}.txt".format(datetime_string, instance_identifier)
+
         else:
             instance_identifier = None
             self.log_filename = "log_{}.txt".format(datetime_string)
+
+        self.app_logfile = logfile
 
         self.log_path = os.path.join(self.output_dir, self.log_filename)
 
@@ -119,7 +122,6 @@ class ResourceMonitor:
                 instance_id=instance_identifier, timestamp=datetime_string, date=date).lstrip("/")
 
         self.s3_upload_interval = s3_upload_interval
-        self.app_logfile = logfile
         #     Threading stuff
         self.stop_event = threading.Event()
 
