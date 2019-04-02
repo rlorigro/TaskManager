@@ -2,19 +2,12 @@
 
 from taskManager.ProcessHandler import ProcessHandler
 from taskManager.config_helpers import *
-
+from taskManager.ResourceMonitor import ResourceMonitor
+import time
+import threading
+import datetime
 import argparse
 import signal
-
-
-def main(command, aws, sender, recipients, redirect_path, source_email, source_password):
-    handler = ProcessHandler(aws=aws, email_sender=sender, email_recipients=recipients,
-                             source_email=source_email, source_password=source_password)
-
-    signal.signal(signal.SIGTERM, handler.handle_exit)
-    signal.signal(signal.SIGINT, handler.handle_exit)
-
-    handler.launch_process(command, redirect_path=redirect_path)
 
 
 def space_separated_arguments(string):
@@ -36,12 +29,19 @@ def string_as_bool(s):
     return boolean
 
 
+def select_not_none(a, b):
+    if a is None:
+        return b
+    else:
+        return a
+
+
 def space_separated_list(s):
     tokens = s.strip().split(" ")
     return tokens
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command")
 
@@ -58,16 +58,109 @@ if __name__ == "__main__":
                             required=True,
                             type=space_separated_list,
                             help="The command to be run inside a subprocess and monitored with email notification")
-
     run_parser.add_argument("--redirect", "-r",
                             required=False,
                             type=str,
                             help="File name to redirect to")
+    run_parser.add_argument("--to",
+                            dest="recipient",
+                            required=False,
+                            type=str,
+                            help="A comma-separted list of email recipients (ie 'user1@domain.com,user2@domain.com'). For AWS, this must be validated within SES console")
 
+    run_parser.add_argument("--from",
+                            dest="sender",
+                            required=False,
+                            type=str,
+                            help="The email sender. For AWS, this must be validated within SES console")
+
+    run_parser.add_argument("--aws",
+                            required=False,
+                            default=None,
+                            type=string_as_bool,
+                            help="Whether to use AWS SES or simple local SMTP server")
+    run_parser.add_argument('--output_dir',
+                            dest='output_dir',
+                            required=False,
+                            default=None,
+                            type=str,
+                            help="output folder")
+    run_parser.add_argument('--source_email',
+                            dest='source_email',
+                            required=False,
+                            default=None,
+                            type=str,
+                            help="gmail source email")
+    run_parser.add_argument('--source_password',
+                            dest='source_password',
+                            required=False,
+                            default=None,
+                            type=str,
+                            help="password to source email to send email via gmail")
+    run_parser.add_argument('--interval',
+                            dest='interval',
+                            required=False,
+                            default=None,
+                            type=int,
+                            help="interval (in seconds) for sampling")
+    run_parser.add_argument('--s3_upload_interval',
+                            dest='s3_upload_interval',
+                            required=False,
+                            default=None,
+                            type=int,
+                            help="interval (in seconds) for sampling")
+    run_parser.add_argument('--s3_upload_bucket',
+                            dest='s3_upload_bucket',
+                            required=False,
+                            default=None,
+                            type=str,
+                            help="bucket (s3:// is not required) for file uploading.  Setting this triggers upload.")
+    run_parser.add_argument('--s3_upload_path',
+                            dest='s3_upload_path',
+                            required=False,
+                            default=None,
+                            type=str,
+                            help="s3 location (no bucket) where logs should be uploaded.  "
+                                 "Can use custom python formatting parameters (need ':' prepended) including: "
+                                 "'instance_id', 'timestamp', 'date'.  "
+                                 "Default: 'logs/resource_monitor/{date}_{instance_id}/' ")
+    run_parser.add_argument('--logfile',
+                            dest='logfile',
+                            required=False,
+                            default=None,
+                            type=str,
+                            help="write script logs to file (defaults to stderr)")
     args = parser.parse_args()
+
     if args.command == "configure":
         create_task_manager_config()
     if args.command == "run":
+        # get arguments from config or command line
         config = get_task_manager_config()
-        main(command=args.run_command, aws=config.aws, sender=config.sender, recipients=config.recipient,
-             redirect_path=args.redirect, source_email=config.source_email, source_password=config.source_password)
+        aws = select_not_none(args.aws, config.aws)
+        sender = select_not_none(args.sender, config.sender)
+        recipient = select_not_none(args.recipient, config.recipient)
+        redirect = select_not_none(args.redirect, config.redirect)
+        source_email = select_not_none(args.source_email, config.source_email)
+        source_password = select_not_none(args.source_password, config.source_password)
+        output_dir = select_not_none(args.output_dir, config.output_dir)
+        interval = select_not_none(args.interval, config.interval)
+        s3_upload_bucket = select_not_none(args.s3_upload_bucket, config.s3_upload_bucket)
+        s3_upload_path = select_not_none(args.s3_upload_path, config.s3_upload_path)
+        s3_upload_interval = select_not_none(args.s3_upload_interval, config.s3_upload_interval)
+        # create resource monitoring class
+        monitor = ResourceMonitor(output_dir=output_dir, interval=interval, aws=aws,
+                                  s3_upload_bucket=s3_upload_bucket, s3_upload_path=s3_upload_path,
+                                  s3_upload_interval=s3_upload_interval)
+        # start process and track resources
+        handler = ProcessHandler(aws=aws, email_sender=sender, email_recipients=recipient,
+                                 source_email=source_email, source_password=source_password, resource_monitor=monitor)
+
+        signal.signal(signal.SIGTERM, handler.handle_exit)
+        signal.signal(signal.SIGINT, handler.handle_exit)
+
+        handler.launch_process(args.run_command, redirect_path=redirect)
+
+
+if __name__ == "__main__":
+    main()

@@ -33,16 +33,21 @@ def ensure_directory_exists(directory_path):
                 raise
 
 
-def main(file_path, output_dir):
+def plot_resources_main(file_path, output_dir, show=False):
     headers, header_indexes, data = read_tsv(file_path)
-    figure, axes = plot_resource_data(headers=headers, data=data, show=True)
+    output_path = None
 
-    output_filename_prefix = os.path.basename(file_path).split(".")[0]
-    output_filename = output_filename_prefix + ".png"
-    output_path = os.path.join(output_dir, output_filename)
+    if len(data) == 0:
+        print("No data recorded in {}".format(file_path))
+    else:
+        output_filename_prefix = os.path.basename(file_path).split(".")[0]
+        output_filename = output_filename_prefix + ".png"
+        output_path = os.path.join(output_dir, output_filename)
 
-    print("Saving figure as: %s" % output_path)
-    figure.savefig(output_path, dpi=300)
+        figure, axes = plot_resource_data(headers=headers, data=data, show=show)
+        print("Saving figure as: %s" % output_path)
+        figure.savefig(output_path, dpi=300)
+    return output_path
 
 
 if __name__ == "__main__":
@@ -65,5 +70,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    main(file_path=args.log_path, output_dir=args.output_dir)
+    plot_resources_main(file_path=args.log_path, output_dir=args.output_dir)
 
