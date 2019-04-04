@@ -51,14 +51,14 @@ class Notifier:
             # attach the instance 'p' to instance 'msg'
             self.message.attach(p)
 
-    def send_message(self, subject, body, attachment=None):
+    def send_message(self, subject, body, subject_prefix=True, attachment=None):
         # Check whether limit has been exceeded
         if self.attempts > self.max_cumulative_attempts:
             print("WARNING: max email attempts exceeded for this Notifier, max=%d, sent=%d" % \
                   (self.max_cumulative_attempts, self.attempts))
             return
 
-        self.generate_message(subject=subject, body=body, attachment=attachment)
+        self.generate_message(subject=subject, body=body, subject_prefix=subject_prefix, attachment=attachment)
 
         if self.source_email is not None and self.source_password is not None:
             try:
