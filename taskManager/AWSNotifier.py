@@ -1,5 +1,10 @@
 import boto3
 from botocore.exceptions import ClientError
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+import os
 
 
 class Notifier:
@@ -37,8 +42,7 @@ class Notifier:
                   (self.max_cumulative_attempts, self.attempts))
             return
 
-        if subject_prefix:
-            subject = self.subject_prefix + subject
+        self.generate_message(subject=subject, body=body, subject_prefix=subject_prefix, attachment=attachment)
 
         # If necessary, replace us-west-2 with the AWS Region you're using for Amazon SES.
         aws_region = "us-west-2"
@@ -51,27 +55,12 @@ class Notifier:
 
         # Try to send the email.
         try:
-            # Provide the contents of the email.
-            response = client.send_email(
-                Destination={
-                    'ToAddresses':
-                        self.email_recipients,
-                },
-                Message={
-                    'Body': {
-                        'Text': {
-                            'Charset': charset,
-                            'Data': body,
-                        },
-                    },
-                    'Subject': {
-                        'Charset': charset,
-                        'Data': subject,
-                    },
-                },
-                Source=self.email_sender,
-            )
-        # Display an error if something goes wrong.
+            response = client.send_raw_email(
+                Source=self.message['From'],
+                Destinations=self.email_recipients,
+                RawMessage={'Data': self.message.as_string()})
+
+            # Display an error if something goes wrong.
         except ClientError as e:
             print(e.response['Error']['Message'])
         else:
@@ -80,3 +69,29 @@ class Notifier:
             self.sent = True
 
         self.attempts += 1
+
+    def generate_message(self, subject, body, subject_prefix=True, attachment=None):
+        """Generate a message to send via the sendmail module of SMTP
+        """
+        if subject_prefix:
+            subject = self.subject_prefix + subject
+
+        # instance of MIMEMultipart
+        self.message = MIMEMultipart()
+        self.message['From'] = self.email_sender
+        self.message['To'] = ", ".join(self.email_recipients)
+        self.message['Subject'] = subject
+        self.message.attach(MIMEText(body, 'plain'))
+
+        if attachment is not None:
+            # open the file to be sent
+            filename = os.path.basename(attachment)
+            attachment = open(attachment, "rb")
+            p = MIMEBase('application', 'octet-stream')
+            # To change the payload into encoded form
+            p.set_payload(attachment.read())
+            # encode into base64
+            encoders.encode_base64(p)
+            p.add_header('Content-Disposition', "attachment; filename= %s" % filename)
+            # attach the instance 'p' to instance 'msg'
+            self.message.attach(p)
