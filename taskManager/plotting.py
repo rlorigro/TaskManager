@@ -148,16 +148,6 @@ def plot_resource_data(headers, data, show=False):
     return figure, axes
 
 
-def main():
-    file_path = "/home/ryan/code/TaskManager/output/racon_run_x1e_8xlarge_wg_human/log_2019_2_11_17_33_19_458174.txt"
-
-    headers, header_indexes, data = read_tsv(file_path)
-    figure, axes = plot_resource_data(headers=headers, data=data, show=True)
-
-
-if __name__ == "__main__":
-    main()
-
 
 """
 

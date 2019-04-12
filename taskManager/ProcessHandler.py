@@ -1,7 +1,7 @@
 from taskManager.Notifier import Notifier
 from taskManager.AWSNotifier import Notifier as AWSNotifier
 from taskManager.ResourceMonitor import get_instance_identification
-from taskManager.plot_resource_usage import plot_resources_main
+from bin.plot_resource_usage import plot_resources_main
 from time import time
 import subprocess
 import sys

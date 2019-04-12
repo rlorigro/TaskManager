@@ -63,7 +63,8 @@ def main():
                             dest="recipient",
                             required=False,
                             type=str,
-                            help="A comma-separted list of email recipients (ie 'user1@domain.com,user2@domain.com'). For AWS, this must be validated within SES console")
+                            help="A comma-separted list of email recipients (ie 'user1@domain.com,user2@domain.com'). "
+                                 "For AWS, this must be validated within SES console")
 
     run_parser.add_argument("--from",
                             dest="sender",
