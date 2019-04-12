@@ -29,9 +29,12 @@ class TaskManagerTests(unittest.TestCase):
 
     def test_write_config(self):
         with tempfile.TemporaryDirectory() as tempdir:
+            tm.DefaultPaths = dict(home=os.path.join(tempdir, ".taskmanager"),
+                                   output=os.path.join(os.path.join(tempdir, ".taskmanager"),
+                                                       "resource_manager_output"),
+                                   config=os.path.join(os.path.join(tempdir, ".taskmanager"), "config"))
+
             test = {"asdf": 1}
-            tm.TM_HOME_DIR = os.path.join(tempdir, ".taskmanager")
-            tm.TM_CONFIG_PATH = os.path.join(tempdir, "config")
             path = tm.write_task_manager_config(test)
             data = load_json(path)
             self.assertDictEqual(test, data)
@@ -58,34 +61,11 @@ class TaskManagerTests(unittest.TestCase):
             self.assertEqual(data, 10)
 
     def test_prompt_user_for_config_args(self):
-        user_input = [
-            'some_email',
-            'some_email2',
-            'y',
-            'some_email3',
-            'n',
-            'n',
-            "some_email4",
-            "some_password",
-            "y",
-            '',
-            '',
-            '',
-            '',
-            ''
-        ]
-        config_args = {"sender": "some_email", "recipient": ["some_email2", "some_email3"], "aws": False,
-                       "source_email": "some_email4",
-                       "source_password": "some_password", "resource_monitor": True,
-                       "output_dir": tm.TM_OUTPUT_DIR, "s3_upload_bucket": None, "s3_upload_path": None,
-                       "s3_upload_interval": 300, "interval": 5}
-
-        with patch('builtins.input', side_effect=user_input):
-            stacks = tm.prompt_user_for_config_args()
-        self.assertSequenceEqual(stacks, config_args)
-
-    def test_create_task_manager_config(self):
         with tempfile.TemporaryDirectory() as tempdir:
+            tm.DefaultPaths = dict(home=os.path.join(tempdir, ".taskmanager"),
+                                   output=os.path.join(os.path.join(tempdir, ".taskmanager"),
+                                                       "resource_manager_output"),
+                                   config=os.path.join(os.path.join(tempdir, ".taskmanager"), "config"))
 
             user_input = [
                 'some_email',
@@ -106,29 +86,63 @@ class TaskManagerTests(unittest.TestCase):
             config_args = {"sender": "some_email", "recipient": ["some_email2", "some_email3"], "aws": False,
                            "source_email": "some_email4",
                            "source_password": "some_password", "resource_monitor": True,
-                           "output_dir": tm.TM_OUTPUT_DIR, "s3_upload_bucket": None, "s3_upload_path": None,
+                           "output_dir": tm.DefaultPaths['output'], "s3_upload_bucket": None, "s3_upload_path": None,
                            "s3_upload_interval": 300, "interval": 5}
 
-            tm.TM_HOME_DIR = os.path.join(tempdir, ".taskmanager")
-            tm.TM_CONFIG_PATH = os.path.join(tempdir, "config")
-
             with patch('builtins.input', side_effect=user_input):
-                stacks = tm.create_task_manager_config()
-            self.assertTrue(stacks)
-            self.assertDictEqual(config_args, load_json(tm.TM_CONFIG_PATH))
+                stacks = tm.prompt_user_for_config_args()
+            self.assertSequenceEqual(stacks, config_args)
 
-    def test_get_task_manager_config(self):
-        self.assertRaises(AssertionError, tm.get_task_manager_config)
+    def test_create_task_manager_config(self):
         with tempfile.TemporaryDirectory() as tempdir:
+            user_input = [
+                'some_email',
+                'some_email2',
+                'y',
+                'some_email3',
+                'n',
+                'n',
+                "some_email4",
+                "some_password",
+                "y",
+                '',
+                '',
+                '',
+                '',
+                ''
+            ]
+
+            tm.DefaultPaths = dict(home=os.path.join(tempdir, ".taskmanager"),
+                                   output=os.path.join(os.path.join(tempdir, ".taskmanager"),
+                                                       "resource_manager_output"),
+                                   config=os.path.join(os.path.join(tempdir, ".taskmanager"), "config"))
 
             config_args = {"sender": "some_email", "recipient": ["some_email2", "some_email3"], "aws": False,
                            "source_email": "some_email4",
                            "source_password": "some_password", "resource_monitor": True,
-                           "output_dir": tm.TM_OUTPUT_DIR, "s3_upload_bucket": None, "s3_upload_path": None,
+                           "output_dir": tm.DefaultPaths['output'], "s3_upload_bucket": None, "s3_upload_path": None,
                            "s3_upload_interval": 300, "interval": 5}
-            tm.TM_HOME_DIR = os.path.join(tempdir, ".taskmanager")
-            tm.TM_CONFIG_PATH = os.path.join(tempdir, "config")
-            save_json(config_args, tm.TM_CONFIG_PATH)
+
+            with patch('builtins.input', side_effect=user_input):
+                stacks = tm.create_task_manager_config()
+            self.assertTrue(stacks)
+            self.assertDictEqual(config_args, load_json(tm.DefaultPaths["config"]))
+
+    def test_get_task_manager_config(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            tm.DefaultPaths = dict(home=os.path.join(tempdir, ".taskmanager"),
+                                   output=os.path.join(os.path.join(tempdir, ".taskmanager"),
+                                                       "resource_manager_output"),
+                                   config=os.path.join(os.path.join(tempdir, ".taskmanager"), "config"))
+            self.assertRaises(AssertionError, tm.get_task_manager_config)
+
+            config_args = {"sender": "some_email", "recipient": ["some_email2", "some_email3"], "aws": False,
+                           "source_email": "some_email4",
+                           "source_password": "some_password", "resource_monitor": True,
+                           "output_dir": tm.DefaultPaths['output'], "s3_upload_bucket": None, "s3_upload_path": None,
+                           "s3_upload_interval": 300, "interval": 5}
+            os.mkdir(tm.DefaultPaths["home"])
+            save_json(config_args, tm.DefaultPaths['config'])
             self.assertDictEqual(config_args,
                                  tm.get_task_manager_config())
 

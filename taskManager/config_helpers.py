@@ -13,9 +13,11 @@ import sys
 from pathlib import Path
 from py3helpers.utils import save_json, load_json, create_dot_dict
 
-TM_HOME_DIR = os.path.join(str(Path.home()), ".taskmanager")
-TM_OUTPUT_DIR = os.path.join(TM_HOME_DIR, "resource_manager_output")
-TM_CONFIG_PATH = os.path.join(TM_HOME_DIR, "config")
+
+DefaultPaths = dict(home=os.path.join(str(Path.home()), ".taskmanager"),
+                    output=os.path.join(os.path.join(str(Path.home()), ".taskmanager"),
+                                               "resource_manager_output"),
+                    config=os.path.join(os.path.join(str(Path.home()), ".taskmanager"), "config"))
 
 
 def write_task_manager_config(dict_args):
@@ -23,12 +25,12 @@ def write_task_manager_config(dict_args):
     :param dict_args: dictionary of arguments to write to config file
     """
     # Make dirs
-    if not os.path.exists(TM_HOME_DIR):
-        os.mkdir(TM_HOME_DIR)
-    if not os.path.exists(TM_OUTPUT_DIR):
-        os.mkdir(TM_OUTPUT_DIR)
-    save_json(dict_args, TM_CONFIG_PATH)
-    return TM_CONFIG_PATH
+    if not os.path.exists(DefaultPaths["home"]):
+        os.mkdir(DefaultPaths["home"])
+    if not os.path.exists(DefaultPaths["output"]):
+        os.mkdir(DefaultPaths["output"])
+    save_json(dict_args, DefaultPaths["config"])
+    return DefaultPaths["config"]
 
 
 def query_yes_no(question, default=True):
@@ -60,11 +62,11 @@ def prompt_user_for_config_args():
     """Prompt user for arguments for config file"""
     config_args = {"sender": None, "recipient": None, "aws": False, "source_email": None,
                    "source_password": None, "resource_monitor": True,
-                   "output_dir": TM_OUTPUT_DIR, "s3_upload_bucket": None, "s3_upload_path": None,
+                   "output_dir": DefaultPaths["output"], "s3_upload_bucket": None, "s3_upload_path": None,
                    "s3_upload_interval": 300, "interval": 5}
 
-    if os.path.exists(TM_CONFIG_PATH):
-        config_args = create_dot_dict(load_json(TM_CONFIG_PATH))
+    if os.path.exists(DefaultPaths["config"]):
+        config_args = create_dot_dict(load_json(DefaultPaths["config"]))
 
     config_args["sender"] = user_input_or_defualt("Sender Email", config_args["sender"], str)
     to_emails = []
@@ -88,7 +90,8 @@ def prompt_user_for_config_args():
                                                    default=config_args["resource_monitor"])
     if config_args["resource_monitor"]:
         config_args["output_dir"] = user_input_or_defualt("Output dir: ", config_args["output_dir"], str)
-        config_args["interval"] = user_input_or_defualt("Access compute resources interval: ", config_args["interval"], float)
+        config_args["interval"] = user_input_or_defualt("Access compute resources interval: ", config_args["interval"],
+                                                        float)
         config_args["s3_upload_bucket"] = user_input_or_defualt("S3 Upload Bucket: ",
                                                                 config_args["s3_upload_bucket"], str)
         config_args["s3_upload_path"] = user_input_or_defualt("S3 Upload Path: ",
@@ -101,7 +104,7 @@ def prompt_user_for_config_args():
 
 def user_input_or_defualt(message, default, type):
     """Get the user input from a message and revert to default value if user does not specify"""
-    x = input(message+"[{}]:".format(default))
+    x = input(message + "[{}]:".format(default))
     if x is '':
         return default
     else:
@@ -121,5 +124,6 @@ def create_task_manager_config():
 
 def get_task_manager_config():
     """Read in taskManager config file"""
-    assert os.path.exists(TM_CONFIG_PATH), "No config file: run 'taskManager configure' to setup config file"
-    return create_dot_dict(load_json(TM_CONFIG_PATH))
+    assert os.path.exists(DefaultPaths["config"]), "No config file: run 'taskManager configure' to setup config file"
+    return create_dot_dict(load_json(DefaultPaths["config"]))
+
