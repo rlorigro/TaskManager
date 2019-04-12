@@ -23,11 +23,13 @@ def main():
         tests_require=["pytest"],
         author_email='rlorigro@ucsc.edu, andbaile@ucsc.com',
         packages=find_packages(),
-        scripts=['bin/taskManager'],
+        scripts=['bin/taskManager' 'bin/monitor_resource_monitor.py',
+                 'bin/plot_resource_usage.py',
+                 'bin/resource_monitor.py'],
         install_requires=['psutil>=5.6.1',
                           'boto3>=1.9',
                           'pytest>=4.3.1',
-                          'py3helpers>=0.2.4'],
+                          'py3helpers>=0.2.7'],
         zip_safe=True
     )
 
