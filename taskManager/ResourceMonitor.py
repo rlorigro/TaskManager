@@ -65,7 +65,7 @@ def ensure_directory_exists(directory_path):
 
 class ResourceMonitor:
     def __init__(self, output_dir, interval, aws, alarm_interval=60, s3_upload_bucket=None, s3_upload_path=None,
-                 s3_upload_interval=300, logfile=None):
+                 s3_upload_interval=300):
 
         self.output_dir = output_dir
         datetime_string = get_datetime_string()
@@ -77,8 +77,6 @@ class ResourceMonitor:
         else:
             instance_identifier = None
             self.log_filename = "log_{}.txt".format(datetime_string)
-
-        self.app_logfile = logfile
 
         self.log_path = os.path.join(self.output_dir, self.log_filename)
 
@@ -132,15 +130,11 @@ class ResourceMonitor:
             self.history.popleft()
 
     def log(self, msg):
-        if self.app_logfile is None:
-            print(msg, file=sys.stderr)
-        else:
-            with open(self.app_logfile, 'a') as logfile:
-                print(msg, file=logfile)
+        print(msg, file=sys.stderr)
 
     def launch(self):
         ensure_directory_exists(self.output_dir)
-        self.log("Writing to log file: %s" % os.path.abspath(self.log_path))
+        self.log("Writing IO/CPU/MEM usage to log file: %s" % os.path.abspath(self.log_path))
 
         checkpoint_time = time()
         upload_time = time()

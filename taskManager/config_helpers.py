@@ -62,7 +62,8 @@ def prompt_user_for_config_args():
     """Prompt user for arguments for config file"""
     config_args = {"sender": None, "recipient": None, "aws": False, "source_email": None,
                    "source_password": None, "resource_monitor": True,
-                   "output_dir": DefaultPaths["output"], "s3_upload_bucket": None, "s3_upload_path": None,
+                   "output_dir": DefaultPaths["output"], "s3_upload_bucket": None,
+                   "s3_upload_path": "logs/resource_monitor/{date}_{instance_id}/",
                    "s3_upload_interval": 300, "interval": 5}
 
     if os.path.exists(DefaultPaths["config"]):
@@ -72,7 +73,7 @@ def prompt_user_for_config_args():
     to_emails = []
     more_emails = True
     while more_emails:
-        tmp_email = user_input_or_defualt("Recipient Email:", None, str)
+        tmp_email = user_input_or_defualt("Recipient Email:", config_args["recipient"], str)
         if tmp_email is not None:
             to_emails.append(tmp_email)
             more_emails = query_yes_no("Add more emails?")

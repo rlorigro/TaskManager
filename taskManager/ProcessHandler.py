@@ -63,19 +63,24 @@ class ProcessHandler:
         else:
             return None
 
-    def launch_process(self, arguments, working_directory=".", redirect_path=None):
+    def launch_process(self, arguments, working_directory=".", redirect_stdout=None, redirect_stderr=None):
         self.arguments = arguments
-        print("RUNNING: %s" % " ".join(arguments))
+        print("RUNNING: %s" % " ".join(arguments), file=sys.stderr)
 
         if self.process is None:
             self.start_time = time()
 
-            if redirect_path is None:
-                self.process = subprocess.Popen(arguments, cwd=working_directory)
-            else:
-                with open(redirect_path, "w") as output_file:
-                    print("REDIRECTING TO: ", redirect_path, "\n")
-                    self.process = subprocess.Popen(arguments, cwd=working_directory, stdout=output_file)
+            if redirect_stdout is not None:
+                print("REDIRECTING STDOUT TO: ", redirect_stdout, file=sys.stderr)
+                redirect_stdout = open(redirect_stdout, "w")
+
+            if redirect_stderr is not None:
+                print("REDIRECTING STDERR TO: ", redirect_stderr, file=sys.stderr)
+                redirect_stderr = open(redirect_stderr, "w")
+
+            self.process = subprocess.Popen(arguments, cwd=working_directory,
+                                            stdout=redirect_stdout,
+                                            stderr=redirect_stderr)
 
             self.process.wait()
             self.end_time = time()
@@ -113,6 +118,7 @@ class ProcessHandler:
             self.process = None
 
             gc.collect()
-
+            if self.resource_monitor is not None:
+                self.resource_monitor.kill()
         else:
             print("WARNING: no running process to be killed")

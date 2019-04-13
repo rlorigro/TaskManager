@@ -41,9 +41,10 @@ def space_separated_list(s):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command")
-
+    subparsers.required = True
     # parsers for running the full pipeline
-    run_parser = subparsers.add_parser("run", help="Run command and email when competed")
+    run_parser = subparsers.add_parser("run", help="Run command, track memory, cpu and IO usage. "
+                                                   "Send email when command exits")
     configure_parser = subparsers.add_parser("configure", help="Configure taskManager to send emails to "
                                                                "the correct location")
 
@@ -54,24 +55,29 @@ def main():
                             dest="run_command",
                             required=True,
                             type=space_separated_list,
-                            help="The command to be run inside a subprocess and monitored with email notification")
-    run_parser.add_argument("--redirect", "-r",
+                            help="The command to be run inside a subprocess")
+    run_parser.add_argument("--redirect_stdout", "-r",
+                            dest="redirect_stdout",
                             required=False,
                             type=str,
-                            help="File name to redirect to")
+                            help="Redirect stdout of command to a file")
+    run_parser.add_argument('--redirect_stderr', '-e',
+                            dest='redirect_stderr',
+                            required=False,
+                            default=None,
+                            type=str,
+                            help="Redirect stderr to a log file")
     run_parser.add_argument("--to",
                             dest="recipient",
                             required=False,
                             type=str,
                             help="A comma-separted list of email recipients (ie 'user1@domain.com,user2@domain.com'). "
                                  "For AWS, this must be validated within SES console")
-
     run_parser.add_argument("--from",
                             dest="sender",
                             required=False,
                             type=str,
                             help="The email sender. For AWS, this must be validated within SES console")
-
     run_parser.add_argument("--aws",
                             required=False,
                             default=None,
@@ -80,9 +86,9 @@ def main():
     run_parser.add_argument('--output_dir',
                             dest='output_dir',
                             required=False,
-                            default=None,
+                            default=DefaultPaths["output"],
                             type=str,
-                            help="output folder")
+                            help="Output folder to place memory/cpu/IO usage log")
     run_parser.add_argument('--source_email',
                             dest='source_email',
                             required=False,
@@ -100,13 +106,13 @@ def main():
                             required=False,
                             default=None,
                             type=int,
-                            help="interval (in seconds) for sampling")
+                            help="interval (in seconds) for sampling mem/cpu/IO usage")
     run_parser.add_argument('--s3_upload_interval',
                             dest='s3_upload_interval',
                             required=False,
                             default=None,
                             type=int,
-                            help="interval (in seconds) for sampling")
+                            help="Interval (in seconds) for uploading log to S3 bucket")
     run_parser.add_argument('--s3_upload_bucket',
                             dest='s3_upload_bucket',
                             required=False,
@@ -116,18 +122,12 @@ def main():
     run_parser.add_argument('--s3_upload_path',
                             dest='s3_upload_path',
                             required=False,
-                            default=None,
+                            default="logs/resource_monitor/{date}_{instance_id}/",
                             type=str,
                             help="s3 location (no bucket) where logs should be uploaded.  "
                                  "Can use custom python formatting parameters (need ':' prepended) including: "
                                  "'instance_id', 'timestamp', 'date'.  "
                                  "Default: 'logs/resource_monitor/{date}_{instance_id}/' ")
-    run_parser.add_argument('--redirect_stderr',
-                            dest='redirect_stderr',
-                            required=False,
-                            default=None,
-                            type=str,
-                            help="Redirect stderr to a log file")
     args = parser.parse_args()
 
     if args.command == "configure":
@@ -138,7 +138,6 @@ def main():
         aws = select_not_none(args.aws, config.aws)
         sender = select_not_none(args.sender, config.sender)
         recipient = select_not_none(args.recipient, config.recipient)
-        redirect = select_not_none(args.redirect, config.redirect)
         source_email = select_not_none(args.source_email, config.source_email)
         source_password = select_not_none(args.source_password, config.source_password)
         output_dir = select_not_none(args.output_dir, config.output_dir)
@@ -149,7 +148,7 @@ def main():
         # create resource monitoring class
         monitor = ResourceMonitor(output_dir=output_dir, interval=interval, aws=aws,
                                   s3_upload_bucket=s3_upload_bucket, s3_upload_path=s3_upload_path,
-                                  s3_upload_interval=s3_upload_interval, logfile=args.redirect_stderr)
+                                  s3_upload_interval=s3_upload_interval)
         # start process and track resources
         handler = ProcessHandler(aws=aws, email_sender=sender, email_recipients=recipient,
                                  source_email=source_email, source_password=source_password, resource_monitor=monitor)
@@ -157,9 +156,7 @@ def main():
         signal.signal(signal.SIGTERM, handler.handle_exit)
         signal.signal(signal.SIGINT, handler.handle_exit)
 
-        handler.launch_process(args.run_command, redirect_path=redirect)
-        if handler.attachment is not None:
-            os.remove(handler.attachment)
+        handler.launch_process(args.run_command, redirect_stdout=args.redirect_stdout, redirect_stderr=args.redirect_stderr)
 
 
 if __name__ == "__main__":
