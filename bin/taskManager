@@ -156,7 +156,8 @@ def main():
         signal.signal(signal.SIGTERM, handler.handle_exit)
         signal.signal(signal.SIGINT, handler.handle_exit)
 
-        handler.launch_process(args.run_command, redirect_stdout=args.redirect_stdout, redirect_stderr=args.redirect_stderr)
+        handler.launch_process(args.run_command, redirect_stdout=args.redirect_stdout,
+                               redirect_stderr=args.redirect_stderr)
 
 
 if __name__ == "__main__":

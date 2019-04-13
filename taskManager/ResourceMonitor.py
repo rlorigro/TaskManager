@@ -65,11 +65,12 @@ def ensure_directory_exists(directory_path):
 
 class ResourceMonitor:
     def __init__(self, output_dir, interval, aws, alarm_interval=60, s3_upload_bucket=None, s3_upload_path=None,
-                 s3_upload_interval=300):
+                 s3_upload_interval=300, logfile=None):
 
         self.output_dir = output_dir
         datetime_string = get_datetime_string()
         date = get_date_string()
+        self.app_logfile = logfile
         if aws:
             instance_identifier = get_instance_identification()
             self.log_filename = "log_{}_{}.txt".format(datetime_string, instance_identifier)
@@ -130,7 +131,11 @@ class ResourceMonitor:
             self.history.popleft()
 
     def log(self, msg):
-        print(msg, file=sys.stderr)
+        if self.app_logfile is None:
+            print(msg, file=sys.stderr)
+        else:
+            with open(self.app_logfile, 'a') as logfile:
+                print(msg, file=logfile)
 
     def launch(self):
         ensure_directory_exists(self.output_dir)
