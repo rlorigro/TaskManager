@@ -70,13 +70,14 @@ def prompt_user_for_config_args():
         config_args = create_dot_dict(load_json(DefaultPaths["config"]))
 
     config_args["sender"] = user_input_or_defualt("Sender Email", config_args["sender"], str)
+    # get recipient emails
     to_emails = []
     more_emails = True
     while more_emails:
         tmp_email = user_input_or_defualt("Recipient Email:", config_args["recipient"], str)
-        if tmp_email is not None:
+        if isinstance(tmp_email, str):
             to_emails.append(tmp_email)
-            more_emails = query_yes_no("Add more emails?")
+            more_emails = query_yes_no("Add more emails?", False)
         else:
             more_emails = False
             to_emails = config_args["recipient"]
@@ -92,13 +93,18 @@ def prompt_user_for_config_args():
     if config_args["resource_monitor"]:
         config_args["output_dir"] = user_input_or_defualt("Output dir: ", config_args["output_dir"], str)
         config_args["interval"] = user_input_or_defualt("Access compute resources interval: ", config_args["interval"],
-                                                        float)
-        config_args["s3_upload_bucket"] = user_input_or_defualt("S3 Upload Bucket: ",
-                                                                config_args["s3_upload_bucket"], str)
-        config_args["s3_upload_path"] = user_input_or_defualt("S3 Upload Path: ",
-                                                              config_args["s3_upload_path"], str)
-        config_args["s3_upload_interval"] = user_input_or_defualt("S3 Upload Interval: ",
-                                                                  config_args["s3_upload_interval"], int)
+                                                        int)
+        if query_yes_no("Upload to S3?", default=False):
+            config_args["s3_upload_bucket"] = user_input_or_defualt("S3 Upload Bucket: ",
+                                                                    config_args["s3_upload_bucket"], str)
+            config_args["s3_upload_path"] = user_input_or_defualt("S3 Upload Path: ",
+                                                                  config_args["s3_upload_path"], str)
+            config_args["s3_upload_interval"] = user_input_or_defualt("S3 Upload Interval: ",
+                                                                      config_args["s3_upload_interval"], int)
+        else:
+            config_args["s3_upload_bucket"] = None
+            config_args["s3_upload_path"] = None
+            config_args["s3_upload_interval"] = None
 
     return config_args
 
