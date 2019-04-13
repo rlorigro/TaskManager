@@ -40,7 +40,8 @@ def get_instance_identification():
         # get the instanceId
         if 'instanceId' in instance_data:
             instance_id = instance_data['instanceId']
-    except:
+    except Exception as e:
+        print("Failed to get instance identification with error: {}".format(e))
         pass
 
     return instance_id

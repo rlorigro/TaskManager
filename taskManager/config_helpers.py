@@ -13,10 +13,9 @@ import sys
 from pathlib import Path
 from py3helpers.utils import save_json, load_json, create_dot_dict
 
-
 DefaultPaths = dict(home=os.path.join(str(Path.home()), ".taskmanager"),
                     output=os.path.join(os.path.join(str(Path.home()), ".taskmanager"),
-                                               "resource_manager_output"),
+                                        "resource_manager_output"),
                     config=os.path.join(os.path.join(str(Path.home()), ".taskmanager"), "config"))
 
 
@@ -109,17 +108,17 @@ def prompt_user_for_config_args():
     return config_args
 
 
-def user_input_or_defualt(message, default, type):
+def user_input_or_defualt(message, default, object_type):
     """Get the user input from a message and revert to default value if user does not specify"""
     x = input(message + "[{}]:".format(default))
     if x is '':
         return default
     else:
         try:
-            x = type(x)
+            x = object_type(x)
         except Exception:
-            raise TypeError("Wrong input type, must type in a {}".format(type))
-        return type(x)
+            raise TypeError("Wrong input type, must type in a {}".format(object_type))
+        return object_type(x)
 
 
 def create_task_manager_config():
@@ -133,4 +132,3 @@ def get_task_manager_config():
     """Read in taskManager config file"""
     assert os.path.exists(DefaultPaths["config"]), "No config file: run 'taskManager configure' to setup config file"
     return create_dot_dict(load_json(DefaultPaths["config"]))
-

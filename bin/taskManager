@@ -45,8 +45,8 @@ def main():
     # parsers for running the full pipeline
     run_parser = subparsers.add_parser("run", help="Run command, track memory, cpu and IO usage. "
                                                    "Send email when command exits")
-    configure_parser = subparsers.add_parser("configure", help="Configure taskManager to send emails to "
-                                                               "the correct location")
+    subparsers.add_parser("configure", help="Configure taskManager to send emails to "
+                                            "the correct location")
 
     parser.register("type", "bool", string_as_bool)
     parser.register("type", "space_separated_list", space_separated_list)
