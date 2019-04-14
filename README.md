@@ -87,10 +87,11 @@ You can plot log files to generate the same image using `plot_resource_usage.py`
 python3:
   - psutil
   - boto3 (for AWS compatibility)
-  - py3helpers
+  - [py3helpers](https://github.com/adbailey4/python_utils) 
  
 ### Compatibility
-Tested on ubuntu 18
+- ubuntu 18
+- osx
 
 
 ## Known issues
