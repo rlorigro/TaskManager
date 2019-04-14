@@ -1,5 +1,8 @@
 from matplotlib import pyplot
 from collections import defaultdict
+from datetime import datetime
+import errno
+import os
 
 
 def read_tsv(file_path):
@@ -10,17 +13,16 @@ def read_tsv(file_path):
     """
     headers = None
     header_indexes = None
-    data = defaultdict(list)    # Each data type will have a list
+    data = defaultdict(list)  # Each data type will have a list
 
     with open(file_path, "r") as file:
-        for l,line in enumerate(file):
+        for l, line in enumerate(file):
             line = line.strip().split("\t")
-
             if l == 0:
                 headers = line
-                header_indexes = {x:i for i,x in enumerate(line)}
+                header_indexes = {x: i for i, x in enumerate(line)}
             else:
-                for i,item in enumerate(line):
+                for i, item in enumerate(line):
                     key = headers[i]
                     data[key].append(float(item))
 
@@ -50,14 +52,14 @@ def get_y_max(key, y):
 
 
 def get_y_label(key):
-    labels = {"cpu_percent":"CPU (%)",
-              "virtual_memory_percent":"Virtual Memory (%)",
-              "disk_usage_percent":"Disk Usage (%)",
-              "swap_memory_percent":"Swap Memory (%)",
-              "io_activity_read_mb":"IO Read (MB)",
-              "io_activity_write_mb":"IO Write (MB)",
-              "io_activity_read_count":"IO Reads (#)",
-              "io_activity_write_count":"IO Writes (#)"}
+    labels = {"cpu_percent": "CPU (%)",
+              "virtual_memory_percent": "Virtual Memory (%)",
+              "disk_usage_percent": "Disk Usage (%)",
+              "swap_memory_percent": "Swap Memory (%)",
+              "io_activity_read_mb": "IO Read (MB)",
+              "io_activity_write_mb": "IO Write (MB)",
+              "io_activity_read_count": "IO Reads (#)",
+              "io_activity_write_count": "IO Writes (#)"}
 
     label = labels[key]
 
@@ -65,20 +67,20 @@ def get_y_label(key):
 
 
 def rescale_time(time):
-    time = [x/60 for x in time]
+    time = [x / 60 for x in time]
 
     return time
 
 
 def get_absolute_y_labels(data, y_percent, key):
-    totals_keys = {"virtual_memory_percent":"virtual_memory_total_gb",
-                   "disk_usage_percent":"disk_usage_total_gb",
-                   "swap_memory_percent":"swap_memory_total_gb"}
+    totals_keys = {"virtual_memory_percent": "virtual_memory_total_gb",
+                   "disk_usage_percent": "disk_usage_total_gb",
+                   "swap_memory_percent": "swap_memory_total_gb"}
 
     total_key = totals_keys[key]
     total_available = data[total_key][0]
 
-    max_used = max(y_percent)/100*total_available
+    max_used = max(y_percent) / 100 * total_available
 
     max_used = int(round(max_used))
     total_available = int(round(total_available))
@@ -87,14 +89,14 @@ def get_absolute_y_labels(data, y_percent, key):
 
 
 def plot_resource_data(headers, data, show=False):
-    time_series_axes = {"cpu_percent":             (0,0),
-                        "virtual_memory_percent":  (0,1),
-                        "disk_usage_percent":      (1,0),
-                        "swap_memory_percent":     (1,1),
-                        "io_activity_read_mb":     (2,0),
-                        "io_activity_write_mb":    (2,1),
-                        "io_activity_read_count":  (3,0),
-                        "io_activity_write_count": (3,1)}
+    time_series_axes = {"cpu_percent": (0, 0),
+                        "virtual_memory_percent": (0, 1),
+                        "disk_usage_percent": (1, 0),
+                        "swap_memory_percent": (1, 1),
+                        "io_activity_read_mb": (2, 0),
+                        "io_activity_write_mb": (2, 1),
+                        "io_activity_read_count": (3, 0),
+                        "io_activity_write_count": (3, 1)}
 
     n_rows = 4
     n_cols = 2
@@ -105,7 +107,7 @@ def plot_resource_data(headers, data, show=False):
     zeros = [0 for i in range(len(x))]
 
     for key in time_series_axes:
-        a,b = time_series_axes[key]
+        a, b = time_series_axes[key]
         y = data[key]
 
         color = get_color(key)
@@ -127,18 +129,18 @@ def plot_resource_data(headers, data, show=False):
                 twin_axes.set_yticks([max(y), y_max])
 
                 twin_axes.set_yticklabels([max_used, total_available])
-                twin_axes.set_ylim(0, y_max*1.1)
+                twin_axes.set_ylim(0, y_max * 1.1)
 
-        axes[a][b].set_ylim(0, y_max*1.1)
+        axes[a][b].set_ylim(0, y_max * 1.1)
         axes[a][b].set_ylabel(get_y_label(key))
         axes[a][b].set_title(" ".join(key.split("_")[:-1]))
-        axes[a][b].plot(x,data[key], color=color, linewidth=line_width)
-        axes[a][b].fill_between(x,y1=zeros, y2=y, color=color, alpha=0.3)
+        axes[a][b].plot(x, data[key], color=color, linewidth=line_width)
+        axes[a][b].fill_between(x, y1=zeros, y2=y, color=color, alpha=0.3)
 
         if a == n_rows - 1:
             axes[a][b].set_xlabel("Time (min)")
 
-    figure.set_size_inches(8,16)
+    figure.set_size_inches(8, 16)
     pyplot.subplots_adjust(hspace=0.5, wspace=0.7)
 
     if show:
@@ -147,6 +149,50 @@ def plot_resource_data(headers, data, show=False):
 
     return figure, axes
 
+
+def plot_resources_main(file_path, output_dir, show=False):
+    headers, header_indexes, data = read_tsv(file_path)
+    output_path = None
+
+    if len(data) == 0:
+        print("No data recorded in {}".format(file_path))
+    else:
+        output_filename_prefix = os.path.basename(file_path).split(".")[0]
+        output_filename = output_filename_prefix + ".png"
+        output_path = os.path.join(output_dir, output_filename)
+
+        figure, axes = plot_resource_data(headers=headers, data=data, show=show)
+        print("Saving figure as: %s" % output_path)
+        figure.savefig(output_path, dpi=300)
+    return output_path
+
+
+def get_datetime_string():
+    """
+    Generate a datetime string. Useful for making output folders names that never conflict.
+    """
+    now = datetime.now()
+    now = [now.year, now.month, now.day, now.hour, now.minute, now.second, now.microsecond]
+    datetime_string = "_".join(list(map(str, now)))
+
+    return datetime_string
+
+
+def ensure_directory_exists(directory_path):
+    """
+    Recursively test directories in a directory path and generate missing directories as needed
+    :param directory_path:
+    :return:
+    """
+    if not os.path.exists(directory_path):
+
+        try:
+            os.makedirs(directory_path)
+        except OSError as exc:
+            if exc.errno == errno.EEXIST and os.path.isdir(directory_path):
+                pass
+            else:
+                raise
 
 
 """
