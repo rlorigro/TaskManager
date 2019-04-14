@@ -137,7 +137,10 @@ def main():
         config = get_task_manager_config()
         aws = select_not_none(args.aws, config.aws)
         sender = select_not_none(args.sender, config.sender)
-        recipient = select_not_none(args.recipient, config.recipient)
+        if args.recipient:
+            recipient = args.recipient.split(",")
+        else:
+            recipient = config.recipient
         source_email = select_not_none(args.source_email, config.source_email)
         source_password = select_not_none(args.source_password, config.source_password)
         output_dir = select_not_none(args.output_dir, config.output_dir)
