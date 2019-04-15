@@ -18,6 +18,12 @@ DefaultPaths = dict(home=os.path.join(str(Path.home()), ".taskmanager"),
                                         "resource_manager_output"),
                     config=os.path.join(os.path.join(str(Path.home()), ".taskmanager"), "config"))
 
+DefaultArgs = {"sender": None, "recipient": None, "aws": False, "source_email": None,
+               "source_password": None, "resource_monitor": True,
+               "output_dir": DefaultPaths["output"], "s3_upload_bucket": None,
+               "s3_upload_path": "logs/resource_monitor/{date}_{instance_id}/",
+               "s3_upload_interval": 300, "interval": 5}
+
 
 def write_task_manager_config(dict_args):
     """Write a config file
@@ -59,11 +65,7 @@ def query_yes_no(question, default=True):
 
 def prompt_user_for_config_args():
     """Prompt user for arguments for config file"""
-    config_args = {"sender": None, "recipient": None, "aws": False, "source_email": None,
-                   "source_password": None, "resource_monitor": True,
-                   "output_dir": DefaultPaths["output"], "s3_upload_bucket": None,
-                   "s3_upload_path": "logs/resource_monitor/{date}_{instance_id}/",
-                   "s3_upload_interval": 300, "interval": 5}
+    config_args = DefaultArgs
 
     if os.path.exists(DefaultPaths["config"]):
         config_args = create_dot_dict(load_json(DefaultPaths["config"]))
@@ -130,5 +132,8 @@ def create_task_manager_config():
 
 def get_task_manager_config():
     """Read in taskManager config file"""
-    assert os.path.exists(DefaultPaths["config"]), "No config file: run 'taskManager configure' to setup config file"
-    return create_dot_dict(load_json(DefaultPaths["config"]))
+    if os.path.exists(DefaultPaths["config"]):
+        return create_dot_dict(load_json(DefaultPaths["config"]))
+    else:
+        print("No Config File Found. Recommend running 'taskManager configure'")
+        return DefaultArgs

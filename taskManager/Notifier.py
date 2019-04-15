@@ -25,6 +25,26 @@ class Notifier:
 
         # How many attempts have been made
         self.attempts = 0
+        self.server = self.connect_to_server()
+
+    def connect_to_server(self):
+        """Check to see if we can connect to a server"""
+        try:
+            server = smtplib.SMTP('localhost')
+        except ConnectionRefusedError:
+            if self.source_email is not None and self.source_password is not None:
+                try:
+                    server = smtplib.SMTP("smtp.gmail.com", 587)
+                    server.starttls()
+                    server.login(self.source_email, self.source_password)
+                except ConnectionRefusedError:
+                    raise ConnectionRefusedError("Failed to connect to SMTP localhost and smtp.gmail.com. Double check "
+                                                 "gmail credentials with --source_email and --source_password.")
+
+            else:
+                raise ConnectionRefusedError("Failed to connect to SMTP localhost. If on aws set --aws or use "
+                                             "gmail with --source_email and --source_password.")
+        return server
 
     def generate_message(self, subject, body, subject_prefix=True, attachment=None):
         """Generate a message to send via the sendmail module of SMTP
@@ -59,16 +79,6 @@ class Notifier:
             return
 
         self.generate_message(subject=subject, body=body, subject_prefix=subject_prefix, attachment=attachment)
-
-        if self.source_email is not None and self.source_password is not None:
-            try:
-                server = smtplib.SMTP('localhost')
-            except ConnectionRefusedError:
-                server = smtplib.SMTP("smtp.gmail.com", 587)
-                server.starttls()
-                server.login(self.source_email, self.source_password)
-        else:
-            server = smtplib.SMTP('localhost')
         # sending the mail
-        server.sendmail(self.email_sender, self.email_recipients, self.message.as_string())
-        server.close()
+        self.server.sendmail(self.email_sender, self.email_recipients, self.message.as_string())
+        self.server.close()

@@ -23,6 +23,7 @@ class Notifier:
 
         # Do not allow this Notifier to attempt to send more than this many emails
         self.max_cumulative_attempts = max_cumulative_attempts
+        self.client = boto3.client('ses', region_name="us-west-2")
 
         # How many attempts have been made
         self.attempts = 0
@@ -44,18 +45,13 @@ class Notifier:
 
         self.generate_message(subject=subject, body=body, subject_prefix=subject_prefix, attachment=attachment)
 
-        # If necessary, replace us-west-2 with the AWS Region you're using for Amazon SES.
-        aws_region = "us-west-2"
-
         # The character encoding for the email.
         charset = "UTF-8"
 
         # Create a new SES resource and specify a region.
-        client = boto3.client('ses', region_name=aws_region)
-
         # Try to send the email.
         try:
-            response = client.send_raw_email(
+            response = self.client.send_raw_email(
                 Source=self.message['From'],
                 Destinations=self.email_recipients,
                 RawMessage={'Data': self.message.as_string()})

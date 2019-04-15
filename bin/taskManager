@@ -7,11 +7,6 @@ import argparse
 import signal
 
 
-def space_separated_arguments(string):
-    arguments = string.strip().split(" ")
-    return arguments
-
-
 def string_as_bool(s):
     s = s.lower()
     boolean = None
@@ -42,6 +37,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command")
     subparsers.required = True
+    config = get_task_manager_config()
+
     # parsers for running the full pipeline
     run_parser = subparsers.add_parser("run", help="Run command, track memory, cpu and IO usage. "
                                                    "Send email when command exits")
@@ -70,59 +67,67 @@ def main():
     run_parser.add_argument("--to",
                             dest="recipient",
                             required=False,
-                            type=str,
-                            help="A comma-separted list of email recipients (ie 'user1@domain.com,user2@domain.com'). "
+                            default=config["recipient"],
+                            type=space_separated_list,
+                            help="A space separted list of email recipients (ie 'user1@domain.com user2@domain.com'). "
                                  "For AWS, this must be validated within SES console")
     run_parser.add_argument("--from",
                             dest="sender",
                             required=False,
+                            default=config["sender"],
                             type=str,
                             help="The email sender. For AWS, this must be validated within SES console")
+    run_parser.add_argument("--monitor",
+                            required=False,
+                            default=config["resource_monitor"],
+                            type=bool,
+                            dest="resource_monitor",
+                            help="Monitor compute resources while running command. Default: True")
     run_parser.add_argument("--aws",
                             required=False,
-                            default=None,
-                            type=string_as_bool,
-                            help="Whether to use AWS SES or simple local SMTP server")
+                            default=config["aws"],
+                            action='store_true',
+                            help="If set, will use AWS SES if not set and source_email/source_password are not "
+                                 "set will use simple local SMTP server")
     run_parser.add_argument('--output_dir',
                             dest='output_dir',
-                            required=False,
-                            default=DefaultPaths["output"],
+                            default=config["output_dir"],
                             type=str,
                             help="Output folder to place memory/cpu/IO usage log")
     run_parser.add_argument('--source_email',
                             dest='source_email',
                             required=False,
-                            default=None,
+                            default=config["source_email"],
                             type=str,
                             help="gmail source email")
     run_parser.add_argument('--source_password',
                             dest='source_password',
                             required=False,
-                            default=None,
+                            default=config["source_password"],
                             type=str,
                             help="password to source email to send email via gmail")
     run_parser.add_argument('--interval',
                             dest='interval',
                             required=False,
-                            default=None,
+                            default=config["interval"],
                             type=int,
                             help="interval (in seconds) for sampling mem/cpu/IO usage")
     run_parser.add_argument('--s3_upload_interval',
                             dest='s3_upload_interval',
                             required=False,
-                            default=None,
+                            default=config["s3_upload_interval"],
                             type=int,
                             help="Interval (in seconds) for uploading log to S3 bucket")
     run_parser.add_argument('--s3_upload_bucket',
                             dest='s3_upload_bucket',
                             required=False,
-                            default=None,
+                            default=config["s3_upload_bucket"],
                             type=str,
                             help="bucket (s3:// is not required) for file uploading.  Setting this triggers upload.")
     run_parser.add_argument('--s3_upload_path',
                             dest='s3_upload_path',
                             required=False,
-                            default="logs/resource_monitor/{date}_{instance_id}/",
+                            default=config["s3_upload_path"],
                             type=str,
                             help="s3 location (no bucket) where logs should be uploaded.  "
                                  "Can use custom python formatting parameters (need ':' prepended) including: "
@@ -132,29 +137,22 @@ def main():
 
     if args.command == "configure":
         create_task_manager_config()
-    if args.command == "run":
-        # get arguments from config or command line
-        config = get_task_manager_config()
-        aws = select_not_none(args.aws, config.aws)
-        sender = select_not_none(args.sender, config.sender)
-        if args.recipient:
-            recipient = args.recipient.split(",")
-        else:
-            recipient = config.recipient
-        source_email = select_not_none(args.source_email, config.source_email)
-        source_password = select_not_none(args.source_password, config.source_password)
-        output_dir = select_not_none(args.output_dir, config.output_dir)
-        interval = select_not_none(args.interval, config.interval)
-        s3_upload_bucket = select_not_none(args.s3_upload_bucket, config.s3_upload_bucket)
-        s3_upload_path = select_not_none(args.s3_upload_path, config.s3_upload_path)
-        s3_upload_interval = select_not_none(args.s3_upload_interval, config.s3_upload_interval)
-        # create resource monitoring class
-        monitor = ResourceMonitor(output_dir=output_dir, interval=interval, aws=aws,
-                                  s3_upload_bucket=s3_upload_bucket, s3_upload_path=s3_upload_path,
-                                  s3_upload_interval=s3_upload_interval)
+    elif args.command == "run":
+        monitor = None
+        assert args.sender is not None, "Must select an email sender. " \
+                                        "Setup taskManager via 'taskManager configure' or set `--from` "
+        assert args.recipient is not None, "Must select email recipient. " \
+                                           "Setup taskManager via'taskManager configure' or set `--to` "
+
+        if args.resource_monitor:
+            # create resource monitoring class
+            monitor = ResourceMonitor(output_dir=args.output_dir, interval=args.interval, aws=args.aws,
+                                      s3_upload_bucket=args.s3_upload_bucket, s3_upload_path=args.s3_upload_path,
+                                      s3_upload_interval=args.s3_upload_interval)
         # start process and track resources
-        handler = ProcessHandler(aws=aws, email_sender=sender, email_recipients=recipient,
-                                 source_email=source_email, source_password=source_password, resource_monitor=monitor)
+        handler = ProcessHandler(aws=args.aws, email_sender=args.sender, email_recipients=args.recipient,
+                                 source_email=args.source_email, source_password=args.source_password,
+                                 resource_monitor=monitor)
 
         signal.signal(signal.SIGTERM, handler.handle_exit)
         signal.signal(signal.SIGINT, handler.handle_exit)

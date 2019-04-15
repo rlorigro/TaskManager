@@ -93,7 +93,8 @@ class ProcessHandler:
 
         else:
             exit("ERROR: process already launched")
-            self.resource_monitor.kill()
+            if self.resource_monitor is not None:
+                self.resource_monitor.kill()
 
     def handle_exit(self, signum=None, frame=None):
         """

@@ -9,7 +9,10 @@ import subprocess
 import json
 import socket
 import boto3
+
 import threading
+import urllib.request
+import urllib.error
 
 
 def get_datetime_string():
@@ -24,6 +27,17 @@ def get_date_string():
     Generate a date string. Useful for identifying output folders.
     """
     return datetime.now().strftime("%Y%m%d")
+
+
+def is_ec2_instance():
+    """Check if an instance is running on AWS."""
+    result = False
+    meta = 'http://169.254.169.254/latest/meta-data/instance-id'
+    try:
+        result = urllib.request.urlopen(meta, timeout=5).status == 200
+    except (ConnectionError, urllib.error.URLError):
+        return result
+    return result
 
 
 def get_instance_identification():
@@ -41,8 +55,8 @@ def get_instance_identification():
         if 'instanceId' in instance_data:
             instance_id = instance_data['instanceId']
     except Exception as e:
-        print("Failed to get instance identification with error: {}".format(e))
-        pass
+        raise Exception("{}\nFailed to get instance identification. "
+                        "Check if you are actually on an aws EC2 server.".format(e))
 
     return instance_id
 
@@ -73,6 +87,8 @@ class ResourceMonitor:
         date = get_date_string()
         self.app_logfile = logfile
         if aws:
+            assert is_ec2_instance(), \
+                "Failed to get instance information. Confirm you on an AWS EC2 instance or remove '--aws' flag"
             instance_identifier = get_instance_identification()
             self.log_filename = "log_{}_{}.txt".format(datetime_string, instance_identifier)
 
