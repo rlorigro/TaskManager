@@ -26,6 +26,7 @@ class Notifier:
         # How many attempts have been made
         self.attempts = 0
         self.server = self.connect_to_server()
+        self.server.close()
 
     def connect_to_server(self):
         """Check to see if we can connect to a server"""
@@ -77,6 +78,7 @@ class Notifier:
             print("WARNING: max email attempts exceeded for this Notifier, max=%d, sent=%d" % \
                   (self.max_cumulative_attempts, self.attempts))
             return
+        self.server = self.connect_to_server()
 
         self.generate_message(subject=subject, body=body, subject_prefix=subject_prefix, attachment=attachment)
         # sending the mail

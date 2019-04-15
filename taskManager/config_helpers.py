@@ -135,5 +135,4 @@ def get_task_manager_config():
     if os.path.exists(DefaultPaths["config"]):
         return create_dot_dict(load_json(DefaultPaths["config"]))
     else:
-        print("No Config File Found. Recommend running 'taskManager configure'")
         return DefaultArgs

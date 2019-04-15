@@ -77,7 +77,7 @@ class TaskManagerTests(unittest.TestCase):
                 "some_email4",
                 "some_password",
                 "y",
-                '',
+                tm.DefaultPaths['output'],
                 '',
                 'n'
             ]
@@ -94,6 +94,11 @@ class TaskManagerTests(unittest.TestCase):
 
     def test_create_task_manager_config(self):
         with tempfile.TemporaryDirectory() as tempdir:
+
+            tm.DefaultPaths = dict(home=os.path.join(tempdir, ".taskmanager"),
+                                   output=os.path.join(os.path.join(tempdir, ".taskmanager"),
+                                                       "resource_manager_output"),
+                                   config=os.path.join(os.path.join(tempdir, ".taskmanager"), "config"))
             user_input = [
                 'some_email',
                 'some_email2',
@@ -104,17 +109,12 @@ class TaskManagerTests(unittest.TestCase):
                 "some_email4",
                 "some_password",
                 "y",
-                '',
+                tm.DefaultPaths['output'],
                 '',
                 '',
                 '',
                 ''
             ]
-
-            tm.DefaultPaths = dict(home=os.path.join(tempdir, ".taskmanager"),
-                                   output=os.path.join(os.path.join(tempdir, ".taskmanager"),
-                                                       "resource_manager_output"),
-                                   config=os.path.join(os.path.join(tempdir, ".taskmanager"), "config"))
 
             config_args = {"sender": "some_email", "recipient": ["some_email2", "some_email3"], "aws": False,
                            "source_email": "some_email4",
@@ -133,7 +133,6 @@ class TaskManagerTests(unittest.TestCase):
                                    output=os.path.join(os.path.join(tempdir, ".taskmanager"),
                                                        "resource_manager_output"),
                                    config=os.path.join(os.path.join(tempdir, ".taskmanager"), "config"))
-            self.assertRaises(AssertionError, tm.get_task_manager_config)
 
             config_args = {"sender": "some_email", "recipient": ["some_email2", "some_email3"], "aws": False,
                            "source_email": "some_email4",
