@@ -3,6 +3,31 @@
 # TaskManager
 Monitors resources and sends notifications. Uses AWS SES to send emails (if valid credentials exist under ~/.aws). Locally, can also send email via SMTP or gmail.
 
+### Automated Reports
+
+By wrapping your commands with taskmanager, you can automatically notify youself when the job finishes via email. User specified recipients are sent an email which looks like the following:
+
+```
+Process with the following arguments:
+        samtools view -h GM24385.wtdbg2.bam
+on instance i-0e4c60e37ccc2c13b has concluded after 67.20 minutes.
+```
+If you decided to monitor the compute resources a graph of your resource usage will be attached to the email.
+
+You can plot log files to generate the same image using `plot_resource_usage.py`:
+
+![plot of log file](https://github.com/rlorigro/TaskManager/raw/master/log_2019_2_11_17_33_19_458174.png)
+
+## Requirements
+python3:
+  - psutil
+  - boto3 (for AWS compatibility)
+  - [py3helpers](https://github.com/adbailey4/python_utils) 
+ 
+### Compatibility
+- ubuntu 18
+- osx
+
 ## Email notifier usage
 
 To use on AWS, you must first have your `~/.aws` credentials configured. The easiest way to do this is to run `aws configure` on your instance. If you haven't already verified your email in the AWS SES console then you also need to go find your email address in the SES email list and click "verify".
@@ -67,31 +92,6 @@ Although the config file holds most information needed to run taskManager, if yo
 
 ```taskManager run -h```
 
-
-#### Reports
-
-All recipients are sent an email which looks like the following.
-
-```
-Process with the following arguments:
-        samtools view -h GM24385.wtdbg2.bam
-on instance i-0e4c60e37ccc2c13b has concluded after 67.20 minutes.
-```
-If you selected decided to monitor the compute resources a graph of your resource usage will be attached to the email.
-
-You can plot log files to generate the same image using `plot_resource_usage.py`:
-
-![plot of log file](https://github.com/rlorigro/TaskManager/raw/master/log_2019_2_11_17_33_19_458174.png)
-
-### Requirements
-python3:
-  - psutil
-  - boto3 (for AWS compatibility)
-  - [py3helpers](https://github.com/adbailey4/python_utils) 
- 
-### Compatibility
-- ubuntu 18
-- osx
 
 
 ## Known issues
