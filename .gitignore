@@ -2,3 +2,6 @@
 __pycache__
 output
 *.pyc
+build
+dist
+taskManager.egg-info

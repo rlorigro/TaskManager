@@ -1,7 +1,8 @@
-from modules.ResourceMonitor import ResourceMonitor
+from taskManager.ResourceMonitor import ResourceMonitor
 import argparse
 import os
 import errno
+import threading
 
 
 def main(args):
@@ -14,7 +15,7 @@ def main(args):
             else:
                 raise
 
-    monitor = ResourceMonitor(output_dir=args.output_dir, interval=args.interval,
+    monitor = ResourceMonitor(output_dir=args.output_dir, interval=args.interval, aws=args.aws,
                               s3_upload_bucket=args.s3_upload_bucket, s3_upload_path=args.s3_upload_path,
                               s3_upload_interval=args.s3_upload_interval, logfile=args.logfile)
 
