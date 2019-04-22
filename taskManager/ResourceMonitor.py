@@ -257,7 +257,7 @@ class ResourceMonitor:
         return data
 
     def format_data_as_line(self, data):
-        self.log("intervals elapsed: %d" % self.counter)
+        # self.log("intervals elapsed: %d" % self.counter)
 
         line = list()
         for item in sorted(self.headers.items(), key=lambda x: x[1]):

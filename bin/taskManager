@@ -28,6 +28,11 @@ def select_not_none(a, b):
         return a
 
 
+def comma_separated_list(s):
+    tokens = s.strip().split(",")
+    return tokens
+
+
 def space_separated_list(s):
     tokens = s.strip().split(" ")
     return tokens
@@ -46,13 +51,14 @@ def main():
                                             "the correct location")
 
     parser.register("type", "bool", string_as_bool)
+    parser.register("type", "comma_separated_list", comma_separated_list)
     parser.register("type", "space_separated_list", space_separated_list)
 
     run_parser.add_argument("--command", "-c",
                             dest="run_command",
                             required=True,
                             type=space_separated_list,
-                            help="The command to be run inside a subprocess")
+                            help="The command to be run inside a subprocess: eg. -c 'sleep 10' ")
     run_parser.add_argument("--redirect_stdout", "-r",
                             dest="redirect_stdout",
                             required=False,
@@ -68,8 +74,9 @@ def main():
                             dest="recipient",
                             required=False,
                             default=config["recipient"],
-                            type=space_separated_list,
-                            help="A space separted list of email recipients (ie 'user1@domain.com user2@domain.com'). "
+                            type=comma_separated_list,
+                            help="A comma separted list of email recipients "
+                                 "(ie '--to  user1@domain.com,user2@domain.com'). "
                                  "For AWS, this must be validated within SES console")
     run_parser.add_argument("--from",
                             dest="sender",
