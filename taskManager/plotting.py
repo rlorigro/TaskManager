@@ -5,6 +5,34 @@ import errno
 import os
 
 
+def get_datetime_string():
+    """
+    Generate a datetime string. Useful for making output folders names that never conflict.
+    """
+    now = datetime.now()
+    now = [now.year, now.month, now.day, now.hour, now.minute, now.second, now.microsecond]
+    datetime_string = "_".join(list(map(str, now)))
+
+    return datetime_string
+
+
+def ensure_directory_exists(directory_path):
+    """
+    Recursively test directories in a directory path and generate missing directories as needed
+    :param directory_path:
+    :return:
+    """
+    if not os.path.exists(directory_path):
+
+        try:
+            os.makedirs(directory_path)
+        except OSError as exc:
+            if exc.errno == errno.EEXIST and os.path.isdir(directory_path):
+                pass
+            else:
+                raise
+
+
 def read_tsv(file_path):
     """
     General method for converting a tsv into a dictionary of lists, assuming each key has an associated time series
@@ -13,12 +41,24 @@ def read_tsv(file_path):
     """
     headers = None
     header_indexes = None
-    data = defaultdict(list)  # Each data type will have a list
+
+    # Each data type will have a list
+    data = defaultdict(list)
+    static_data = defaultdict(list)
 
     with open(file_path, "r") as file:
         for l, line in enumerate(file):
             line = line.strip().split("\t")
             if l == 0:
+                static_headers = line
+                static_header_indexes = {x: i for i, x in enumerate(line)}
+
+            elif l == 1:
+                for i, item in enumerate(line):
+                    key = static_headers[i]
+                    static_data[key].append(float(item))
+
+            elif l == 2:
                 headers = line
                 header_indexes = {x: i for i, x in enumerate(line)}
             else:
@@ -26,7 +66,7 @@ def read_tsv(file_path):
                     key = headers[i]
                     data[key].append(float(item))
 
-    return headers, header_indexes, data
+    return headers, header_indexes, data, static_headers, static_header_indexes, static_data
 
 
 def get_color(key):
@@ -72,13 +112,14 @@ def rescale_time(time):
     return time
 
 
-def get_absolute_y_labels(data, y_percent, key):
-    totals_keys = {"virtual_memory_percent": "virtual_memory_total_gb",
+def get_absolute_y_labels(data, static_data, y_percent, key):
+    totals_keys = {"cpu_percent":"cpu_total",
+                   "virtual_memory_percent": "virtual_memory_total_gb",
                    "disk_usage_percent": "disk_usage_total_gb",
                    "swap_memory_percent": "swap_memory_total_gb"}
 
     total_key = totals_keys[key]
-    total_available = data[total_key][0]
+    total_available = static_data[total_key][0]
 
     max_used = max(y_percent) / 100 * total_available
 
@@ -88,7 +129,7 @@ def get_absolute_y_labels(data, y_percent, key):
     return max_used, total_available
 
 
-def plot_resource_data(headers, data, show=False):
+def plot_resource_data(headers, data, static_data, show=False):
     time_series_axes = {"cpu_percent": (0, 0),
                         "virtual_memory_percent": (0, 1),
                         "disk_usage_percent": (1, 0),
@@ -118,18 +159,25 @@ def plot_resource_data(headers, data, show=False):
         if key.endswith("percent"):
             axes[a][b].plot([x[0], x[-1]], [y_max, y_max], linestyle="--", color=color, linewidth=line_width)
 
+            max_used, total_available = get_absolute_y_labels(data=data,
+                                                              static_data=static_data,
+                                                              y_percent=y,
+                                                              key=key)
+
+            max_used = str(max_used)
+            total_available = str(total_available)
+
             if not key.startswith("cpu"):
-                max_used, total_available = get_absolute_y_labels(data=data, y_percent=y, key=key)
-                max_used = str(max_used) + " GB"
-                total_available = str(total_available) + " GB"
+                max_used += " GB"
+                total_available += " GB"
 
-                twin_axes = axes[a][b].twinx()
-                twin_axes.tick_params(axis='off', left='off', top='off', right='off', bottom='off',
-                                      labelleft='off', labeltop='off', labelright='on', labelbottom='off')
-                twin_axes.set_yticks([max(y), y_max])
+            twin_axes = axes[a][b].twinx()
+            twin_axes.tick_params(axis='off', left='off', top='off', right='off', bottom='off',
+                                  labelleft='off', labeltop='off', labelright='on', labelbottom='off')
+            twin_axes.set_yticks([max(y), y_max])
 
-                twin_axes.set_yticklabels([max_used, total_available])
-                twin_axes.set_ylim(0, y_max * 1.1)
+            twin_axes.set_yticklabels([max_used, total_available])
+            twin_axes.set_ylim(0, y_max * 1.1)
 
         axes[a][b].set_ylim(0, y_max * 1.1)
         axes[a][b].set_ylabel(get_y_label(key))
@@ -151,7 +199,7 @@ def plot_resource_data(headers, data, show=False):
 
 
 def plot_resources_main(file_path, output_dir, show=False):
-    headers, header_indexes, data = read_tsv(file_path)
+    headers, header_indexes, data, static_headers, static_header_indexes, static_data = read_tsv(file_path)
     output_path = None
 
     if len(data) == 0:
@@ -161,38 +209,11 @@ def plot_resources_main(file_path, output_dir, show=False):
         output_filename = output_filename_prefix + ".png"
         output_path = os.path.join(output_dir, output_filename)
 
-        figure, axes = plot_resource_data(headers=headers, data=data, show=show)
+        figure, axes = plot_resource_data(headers=headers, data=data, static_data=static_data, show=show)
         print("Saving figure as: %s" % output_path)
         figure.savefig(output_path, dpi=300)
+
     return output_path
-
-
-def get_datetime_string():
-    """
-    Generate a datetime string. Useful for making output folders names that never conflict.
-    """
-    now = datetime.now()
-    now = [now.year, now.month, now.day, now.hour, now.minute, now.second, now.microsecond]
-    datetime_string = "_".join(list(map(str, now)))
-
-    return datetime_string
-
-
-def ensure_directory_exists(directory_path):
-    """
-    Recursively test directories in a directory path and generate missing directories as needed
-    :param directory_path:
-    :return:
-    """
-    if not os.path.exists(directory_path):
-
-        try:
-            os.makedirs(directory_path)
-        except OSError as exc:
-            if exc.errno == errno.EEXIST and os.path.isdir(directory_path):
-                pass
-            else:
-                raise
 
 
 """
