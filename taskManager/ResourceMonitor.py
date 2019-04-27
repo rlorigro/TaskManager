@@ -1,3 +1,4 @@
+from multiprocessing import cpu_count
 from collections import deque
 from datetime import datetime
 from time import time, sleep
@@ -107,23 +108,27 @@ class ResourceMonitor:
 
         self.interval = interval
 
-        self.headers = {"time_elapsed_s": 0,
-                        "cpu_percent": 1,
-                        "virtual_memory_total_gb": 2,
-                        "virtual_memory_percent": 3,
-                        "swap_memory_total_gb": 4,
-                        "swap_memory_percent": 5,
-                        "io_activity_read_mb": 6,
-                        "io_activity_write_mb": 7,
-                        "io_activity_read_count": 8,
-                        "io_activity_write_count": 9,
-                        "disk_usage_total_gb": 10,
-                        "disk_usage_percent": 11}
+        self.time_series_headers = {"time_elapsed_s": 0,
+                                    "cpu_percent": 1,
+                                    "virtual_memory_percent": 2,
+                                    "swap_memory_percent": 3,
+                                    "io_activity_read_mb": 4,
+                                    "io_activity_write_mb": 5,
+                                    "io_activity_read_count": 6,
+                                    "io_activity_write_count": 7,
+                                    "disk_usage_percent": 8}
 
         self.normalized_types = {"io_activity_read_mb",
                                  "io_activity_write_mb",
                                  "io_activity_read_count",
                                  "io_activity_write_count"}
+
+        self.static_headers = {"cpu_total": 0,
+                               "virtual_memory_total_gb": 1,
+                               "swap_memory_total_gb": 2,
+                               "disk_usage_total_gb": 3}
+
+        self.static_data = self.get_static_resource_data()
 
         self.start_time = None
         self.counter = 0
@@ -161,14 +166,19 @@ class ResourceMonitor:
         checkpoint_time = time()
         upload_time = time()
         self.start_time = checkpoint_time
-        self.write_header()
+
+        self.write_header(self.static_headers, overwrite=True)
+        self.write_static_data()
+
+        self.write_header(self.time_series_headers)
         while not self.stop_event.is_set():
             if time() - checkpoint_time > self.interval:
 
                 # get data and write to file
                 data = self.get_resource_data()
                 self.update_history(data)
-                line = self.format_data_as_line(data)
+
+                line = self.format_data_as_line(self.time_series_headers, data)
                 with open(self.log_path, 'a') as file:
                     file.write(line)
 
@@ -177,13 +187,7 @@ class ResourceMonitor:
 
                 # upload to s3 (if appropriate)
                 if self.upload_to_s3 and time() - upload_time > self.s3_upload_interval:
-                    try:
-                        self.upload_data_to_s3()
-                    except Exception as e:
-                        # do not die
-                        self.log("Error uploading to S3: {}".format(e))
-                        self.s3_upload_interval = self.s3_upload_interval * 2
-                        self.log("Changing upload interval to: {}s".format(self.s3_upload_interval))
+                    self.upload_to_s3()
                     upload_time = time()
 
                 if self.interval > 1:
@@ -220,11 +224,37 @@ class ResourceMonitor:
 
         return primary_partition
 
-    def write_header(self):
-        with open(self.log_path, "w") as file:
-            header_line = [item[0] for item in sorted(self.headers.items(), key=lambda x: x[1])]
+    def write_static_data(self):
+        with open(self.log_path, "a") as file:
+            line = self.format_data_as_line(self.static_headers, self.static_data)
+            file.write(line)
+
+    def write_header(self, headers, overwrite=False):
+        mode = "a"
+        if overwrite:
+            mode = "w"
+
+        with open(self.log_path, mode) as file:
+            header_line = [item[0] for item in sorted(headers.items(), key=lambda x: x[1])]
             header_line = "\t".join(header_line) + "\n"
             file.write(header_line)
+
+    def get_static_resource_data(self):
+        static_data = dict()
+
+        cpu_total = cpu_count()
+        static_data["cpu_total"] = cpu_total
+
+        virtual_memory = psutil.virtual_memory()
+        static_data["virtual_memory_total_gb"] = virtual_memory.total / (1024 ** 3)
+
+        swap_memory = psutil.swap_memory()
+        static_data["swap_memory_total_gb"] = swap_memory.total / (1024 ** 3)
+
+        disk_usage = psutil.disk_usage("/")
+        static_data["disk_usage_total_gb"] = disk_usage.total / (1024 ** 3)
+
+        return static_data
 
     def get_resource_data(self):
         data = dict()
@@ -235,11 +265,9 @@ class ResourceMonitor:
         data["cpu_percent"] = cpu_percent
 
         virtual_memory = psutil.virtual_memory()
-        data["virtual_memory_total_gb"] = virtual_memory.total / (1024 ** 3)
         data["virtual_memory_percent"] = virtual_memory.percent
 
         swap_memory = psutil.swap_memory()
-        data["swap_memory_total_gb"] = swap_memory.total / (1024 ** 3)
         data["swap_memory_percent"] = swap_memory.percent
 
         io_activity = psutil.disk_io_counters(perdisk=True)
@@ -251,16 +279,13 @@ class ResourceMonitor:
         data["io_activity_write_count"] = io_activity[self.primary_partition].write_count
 
         disk_usage = psutil.disk_usage("/")
-        data["disk_usage_total_gb"] = disk_usage.total / (1024 ** 3)
         data["disk_usage_percent"] = disk_usage.percent
 
         return data
 
-    def format_data_as_line(self, data):
-        # self.log("intervals elapsed: %d" % self.counter)
-
+    def format_data_as_line(self, headers, data):
         line = list()
-        for item in sorted(self.headers.items(), key=lambda x: x[1]):
+        for item in sorted(headers.items(), key=lambda x: x[1]):
             key = item[0]
             value = data[key]
 
@@ -278,9 +303,18 @@ class ResourceMonitor:
         return line
 
     def upload_data_to_s3(self):
-        endpoint = os.path.join(self.s3_upload_path, self.log_filename)
-        self.log("Uploading {} to s3://{}/{}".format(self.log_path, self.s3_upload_bucket, endpoint))
-        s3 = boto3.resource('s3')
-        s3.meta.client.upload_file(self.log_path, self.s3_upload_bucket, endpoint,
-                                   ExtraArgs={
-                                       'ACL': 'bucket-owner-full-control'})  # this enables upload cross-region (maybe)
+        try:
+            endpoint = os.path.join(self.s3_upload_path, self.log_filename)
+            self.log("Uploading {} to s3://{}/{}".format(self.log_path, self.s3_upload_bucket, endpoint))
+            s3 = boto3.resource('s3')
+            s3.meta.client.upload_file(self.log_path,
+                                       self.s3_upload_bucket,
+                                       endpoint,
+                                       ExtraArgs={'ACL': 'bucket-owner-full-control'})  # enables cross-region (maybe)
+
+        except Exception as e:
+            # do not die
+            self.log("Error uploading to S3: {}".format(e))
+            self.s3_upload_interval = self.s3_upload_interval * 2
+            self.log("Changing upload interval to: {}s".format(self.s3_upload_interval))
+
