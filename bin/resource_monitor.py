@@ -15,16 +15,40 @@ def main(args):
             else:
                 raise
 
-    monitor = ResourceMonitor(output_dir=args.output_dir, interval=args.interval, aws=args.aws,
-                              s3_upload_bucket=args.s3_upload_bucket, s3_upload_path=args.s3_upload_path,
-                              s3_upload_interval=args.s3_upload_interval, logfile=args.logfile)
+    monitor = ResourceMonitor(output_dir=args.output_dir,
+                              interval=args.interval,
+                              aws=args.aws,
+                              s3_upload_bucket=args.s3_upload_bucket,
+                              s3_upload_path=args.s3_upload_path,
+                              s3_upload_interval=args.s3_upload_interval,
+                              logfile=args.logfile)
 
     monitor.launch()
 
 
+def string_as_bool(s):
+    s = s.lower()
+    boolean = None
+
+    if s in {"t", "true", "1", "y", "yes"}:
+        boolean = True
+    elif s in {"f", "false", "0", "n", "no"}:
+        boolean = False
+    else:
+        exit("Error: invalid argument specified for boolean flag: %s" % s)
+
+    return boolean
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.register("type", "string_as_bool", string_as_bool)
 
+    parser.add_argument("--aws",
+                        required=False,
+                        default=True,
+                        type="string_as_bool",
+                        help="Whether to try to upload to s3 in regular intervals")
     parser.add_argument('--output_dir', '-o',
                         dest='output_dir',
                         required=False,
