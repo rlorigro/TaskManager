@@ -2,6 +2,8 @@ language: c
 notifications:
   slack:
     secure: fHfgIIXIeG8bnBVgEIKFeFNFxK50Z+GOColeoTs3f2N8l3iyjR++mNKDqYUYBuqGQ2pPWNlhJjfwN2TKiGLHoctnTU2MJtSq9EzgS3ZHK5csjDPSKam3Ax1mBVquP5OKwUKxLUoAIFUZoSCknvLeX/POxXWM8PtsSUN/w/SRUcNlLLfcEravnsdu3msmPd0o9LpDh+UGqVhWZv6vX+ngjAurVF957mmuHgkLECvK741D90LyVNKeTyxNku6Imbt3MYEZxRsQrrn2p48/r9nOJJ/6+AqKlLjehlaEaXG9M0HnImXsYDejjD9lrBngZ0LSS/OCmpRJtXzikhnsBAuJ5BiIVrQX2AGwCVw3gjCv0abgeiKtuUy6ciVe9ms9WZ+zeyX0Rpe+NCoK6T7oMui3AaikDKZepu81XkTew6loslFhyr15NL8w0pdrlo/eJo9c+SRgPEyRIAvR6xCMJLTxmOcfpmDxX72sCTUaN4KKjxUn5hS/KwtJ0KIS+PsGK9tUjbdm49dFbBEQZAhjY1On0iEjqLDRAT6WrrT35BLEy1ltzqorqWLALCIdoFwXym3HBVa0D4ReJRRtXOAF+V3W5QdD6jFeNikQ+PzSuFe58BaFf3wyAgovKtIts7hxhv+KJCLAVaUDrp+5DYMglt6Pn4FGOyuABd/lLVXK36YdqQk=
+    on_success: change
+    on_failure: always
   email: false
 sudo: required
 os:
