@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 
-from email.message import EmailMessage
-import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
+from taskManager.utils.mail import *
+import smtplib
 import os
 
 
@@ -47,46 +45,6 @@ class Notifier:
                                              "gmail with --source_email and --source_password.")
         return server
 
-    def parse_attachment_argument(self, arg):
-        """
-        Allow singular string path or list
-        :param arg:
-        :return:
-        """
-        invalid_argument = False
-
-        if type(arg) is str:
-            attachments_paths = [arg]
-
-        elif type(arg) is list:
-            for item in arg:
-                if type(item) is not str:
-                    invalid_argument = True
-
-        else:
-            invalid_argument = True
-
-        if invalid_argument:
-            exit("ERROR: invalid attachment argument. Must be string or list of strings, but found: %s" % str(arg))
-
-        return arg
-
-    def encode_attachment(self, attachment_path):
-        # open the file to be sent
-        filename = os.path.basename(attachment_path)
-        attachments_paths = open(attachment_path, "rb")
-
-        attachment = MIMEBase('application', 'octet-stream')
-
-        # To change the payload into encoded form
-        attachment.set_payload(attachments_paths.read())
-
-        # encode into base64
-        encoders.encode_base64(attachment)
-        attachment.add_header('Content-Disposition', "attachment; filename= %s" % filename)
-
-        return attachment
-
     def generate_message(self, subject, body, subject_prefix=True, attachments_paths=None):
         """Generate a message to send via the sendmail module of SMTP
         """
@@ -101,11 +59,11 @@ class Notifier:
         self.message.attach(MIMEText(body, 'plain'))
 
         if attachments_paths is not None:
-            args = self.parse_attachment_argument(attachments_paths)
+            args = parse_paths_as_list(attachments_paths)
 
             for path in args:
                 print("Attaching file to email: %s" % path)
-                attachment = self.encode_attachment(path)
+                attachment = encode_attachment(path)
 
                 if os.stat(path).st_size > 20*1000*1000:
                     print("File larger than 20MB not attached to email: %s")

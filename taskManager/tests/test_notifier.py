@@ -11,8 +11,7 @@
 import unittest
 import os
 from taskManager import Notifier
-from taskManager import AWSNotifier
-import taskManager.config_helpers as tm
+import taskManager.utils.config as tm
 from py3helpers.utils import load_json, save_json
 from unittest.mock import patch
 import tempfile

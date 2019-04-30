@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from taskManager.ProcessHandler import ProcessHandler
-from taskManager.config_helpers import *
+from taskManager.utils.config import *
 from taskManager.ResourceMonitor import ResourceMonitor
 import argparse
 import signal
