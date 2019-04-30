@@ -75,7 +75,7 @@ class Notifier:
         invalid_argument = False
 
         if type(arg) is str:
-            attachments_paths = [arg]
+            arg = [arg]
 
         elif type(arg) is list:
             for item in arg:
