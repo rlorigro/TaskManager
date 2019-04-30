@@ -13,15 +13,24 @@ import sys
 from pathlib import Path
 from py3helpers.utils import save_json, load_json, create_dot_dict
 
+
 DefaultPaths = dict(home=os.path.join(str(Path.home()), ".taskmanager"),
                     output=os.path.join(os.path.join(str(Path.home()), ".taskmanager"), "resource_manager_output"),
                     config=os.path.join(os.path.join(str(Path.home()), ".taskmanager"), "config"))
 
-DefaultArgs = {"sender": None, "recipient": None, "aws": False, "source_email": None,
-               "source_password": None, "resource_monitor": True,
-               "output_dir": DefaultPaths["output"], "s3_upload_bucket": None,
+
+DefaultArgs = {"sender": None,
+               "recipient": None,
+               "aws": False,
+               "source_email": None,
+               "source_password": None,
+               "resource_monitor": True,
+               "attach_log": False,
+               "output_dir": DefaultPaths["output"],
+               "s3_upload_bucket": None,
                "s3_upload_path": "logs/resource_monitor/{date}_{instance_id}/",
-               "s3_upload_interval": 300, "interval": 5}
+               "s3_upload_interval": 300,
+               "interval": 5}
 
 
 def write_task_manager_config(dict_args):
@@ -142,6 +151,9 @@ def prompt_user_for_config_args():
         config_args["interval"] = user_input_or_defualt(message="Access compute resources interval (seconds):",
                                                         default=config_args["interval"],
                                                         object_type=int)
+
+        config_args["attach_log"] = query_yes_no("Attach full TSV of resource usage to email?",
+                                                 default=config_args["attach_log"])
 
         if query_yes_no("Upload to S3?", default=False):
             config_args["s3_upload_bucket"] = user_input_or_defualt(message="S3 Upload Bucket:",

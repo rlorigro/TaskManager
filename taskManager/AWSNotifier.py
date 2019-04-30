@@ -1,9 +1,8 @@
-import boto3
 from botocore.exceptions import ClientError
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
+from taskManager.utils.mail import *
+import boto3
 import os
 
 
@@ -43,7 +42,7 @@ class Notifier:
                   (self.max_cumulative_attempts, self.attempts))
             return
 
-        self.generate_message(subject=subject, body=body, subject_prefix=subject_prefix, attachment=attachment)
+        self.generate_message(subject=subject, body=body, subject_prefix=subject_prefix, attachments_paths=attachment)
 
         # The character encoding for the email.
         charset = "UTF-8"
@@ -66,7 +65,7 @@ class Notifier:
 
         self.attempts += 1
 
-    def generate_message(self, subject, body, subject_prefix=True, attachment=None):
+    def generate_message(self, subject, body, subject_prefix=True, attachments_paths=None):
         """Generate a message to send via the sendmail module of SMTP
         """
         if subject_prefix:
@@ -79,15 +78,16 @@ class Notifier:
         self.message['Subject'] = subject
         self.message.attach(MIMEText(body, 'plain'))
 
-        if attachment is not None:
-            # open the file to be sent
-            filename = os.path.basename(attachment)
-            attachment = open(attachment, "rb")
-            p = MIMEBase('application', 'octet-stream')
-            # To change the payload into encoded form
-            p.set_payload(attachment.read())
-            # encode into base64
-            encoders.encode_base64(p)
-            p.add_header('Content-Disposition', "attachment; filename= %s" % filename)
-            # attach the instance 'p' to instance 'msg'
-            self.message.attach(p)
+        if attachments_paths is not None:
+            args = parse_paths_as_list(attachments_paths)
+
+            for path in args:
+                print("Attaching file to email: %s" % path)
+                attachment = encode_attachment(path)
+
+                if os.stat(path).st_size > 20*1000*1000:
+                    print("File larger than 20MB not attached to email: %s")
+                    continue
+
+                # attach the instance 'attachment' to instance 'msg'
+                self.message.attach(attachment)

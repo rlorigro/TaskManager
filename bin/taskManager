@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from taskManager.ProcessHandler import ProcessHandler
-from taskManager.config_helpers import *
+from taskManager.utils.config import *
 from taskManager.ResourceMonitor import ResourceMonitor
 import argparse
 import signal
@@ -90,6 +90,12 @@ def main():
                             type=bool,
                             dest="resource_monitor",
                             help="Monitor compute resources while running command. Default: True")
+    run_parser.add_argument("--attach_log",
+                            required=False,
+                            default=config["attach_log"],
+                            type=bool,
+                            dest="attach_log",
+                            help="Attach full tsv log of resource usage to the email notification. Default: False")
     run_parser.add_argument("--aws",
                             required=False,
                             default=config["aws"],
@@ -144,6 +150,7 @@ def main():
 
     if args.command == "configure":
         create_task_manager_config()
+
     elif args.command == "run":
         monitor = None
         assert args.sender is not None, "Must select an email sender. " \
@@ -153,18 +160,29 @@ def main():
 
         if args.resource_monitor:
             # create resource monitoring class
-            monitor = ResourceMonitor(output_dir=args.output_dir, interval=args.interval, aws=args.aws,
-                                      s3_upload_bucket=args.s3_upload_bucket, s3_upload_path=args.s3_upload_path,
+            monitor = ResourceMonitor(output_dir=args.output_dir,
+                                      interval=args.interval,
+                                      aws=args.aws,
+                                      s3_upload_bucket=args.s3_upload_bucket,
+                                      s3_upload_path=args.s3_upload_path,
                                       s3_upload_interval=args.s3_upload_interval)
-        # start process and track resources
-        handler = ProcessHandler(aws=args.aws, email_sender=args.sender, email_recipients=args.recipient,
-                                 source_email=args.source_email, source_password=args.source_password,
-                                 resource_monitor=monitor)
 
+        # initialize process handler
+        handler = ProcessHandler(aws=args.aws,
+                                 email_sender=args.sender,
+                                 email_recipients=args.recipient,
+                                 source_email=args.source_email,
+                                 source_password=args.source_password,
+                                 resource_monitor=monitor,
+                                 attach_full_log=args.attach_log)
+
+        # update signal handling rule with the process handler's member functions
         signal.signal(signal.SIGTERM, handler.handle_exit)
         signal.signal(signal.SIGINT, handler.handle_exit)
 
-        handler.launch_process(args.run_command, redirect_stdout=args.redirect_stdout,
+        # Launch process via the process handler
+        handler.launch_process(args.run_command,
+                               redirect_stdout=args.redirect_stdout,
                                redirect_stderr=args.redirect_stderr)
 
 
