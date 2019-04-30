@@ -76,20 +76,28 @@ class TaskManagerTests(unittest.TestCase):
                 'n',
                 "some_email4",
                 "some_password",
-                "y",
+                'y',
                 tm.DefaultPaths['output'],
                 '',
+                'n',
                 'n'
             ]
-            config_args = {"sender": "some_email", "recipient": ["some_email2", "some_email3"], "aws": False,
+            config_args = {"sender": "some_email",
+                           "recipient": ["some_email2", "some_email3"],
+                           "aws": False,
                            "source_email": "some_email4",
-                           "source_password": "some_password", "resource_monitor": True,
-                           "output_dir": tm.DefaultPaths['output'], "s3_upload_bucket": None,
+                           "source_password": "some_password",
+                           "resource_monitor": True,
+                           "output_dir": tm.DefaultPaths['output'],
+                           "s3_upload_bucket": None,
                            "s3_upload_path": None,
-                           "s3_upload_interval": None, "interval": 5}
+                           "s3_upload_interval": None,
+                           "interval": 5,
+                           "attach_log": False}
 
             with patch('builtins.input', side_effect=user_input):
                 stacks = tm.prompt_user_for_config_args()
+
             self.assertSequenceEqual(stacks, config_args)
 
     def test_create_task_manager_config(self):
@@ -113,14 +121,22 @@ class TaskManagerTests(unittest.TestCase):
                 '',
                 '',
                 '',
+                '',
                 ''
             ]
 
-            config_args = {"sender": "some_email", "recipient": ["some_email2", "some_email3"], "aws": False,
+            config_args = {"sender": "some_email",
+                           "recipient": ["some_email2", "some_email3"],
+                           "aws": False,
                            "source_email": "some_email4",
-                           "source_password": "some_password", "resource_monitor": True,
-                           "output_dir": tm.DefaultPaths['output'], "s3_upload_bucket": None, "s3_upload_path": None,
-                           "s3_upload_interval": None, "interval": 5}
+                           "source_password": "some_password",
+                           "resource_monitor": True,
+                           "output_dir": tm.DefaultPaths['output'],
+                           "s3_upload_bucket": None,
+                           "s3_upload_path": None,
+                           "s3_upload_interval": None,
+                           "interval": 5,
+                           "attach_log": False}
 
             with patch('builtins.input', side_effect=user_input):
                 stacks = tm.create_task_manager_config()
