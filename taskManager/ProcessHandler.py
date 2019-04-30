@@ -1,7 +1,7 @@
-from taskManager.Notifier import Notifier
-from taskManager.AWSNotifier import Notifier as AWSNotifier
 from taskManager.ResourceMonitor import get_instance_identification
+from taskManager.AWSNotifier import Notifier as AWSNotifier
 from taskManager.plotting import plot_resources_main
+from taskManager.Notifier import Notifier
 from time import time
 import subprocess
 import sys
@@ -10,20 +10,23 @@ import gc
 
 class ProcessHandler:
     def __init__(self, aws=True, email_sender=None, email_recipients=None, source_email=None, source_password=None,
-                 resource_monitor=None):
+                 resource_monitor=None, attach_full_log=False):
+
         self.email_sender = email_sender
         self.email_recipients = None
         if email_recipients is not None:
             self.email_recipients = email_recipients
+
         self.aws = aws
+        self.source_email = source_email
+        self.source_password = source_password
+        self.attach_full_log = attach_full_log
 
         self.process = None
         self.arguments = None
         self.start_time = None
         self.end_time = None
-        self.attachment = None
-        self.source_email = source_email
-        self.source_password = source_password
+        self.attachments = list()
 
         if aws:
             self.notifier = AWSNotifier(email_sender=email_sender, email_recipients=self.email_recipients)
@@ -55,7 +58,7 @@ class ProcessHandler:
         body = "Process with the following arguments: \n\t%s \non %s has concluded after %.2f minutes." % \
                (argument_string, machine_name, time_elapsed)
 
-        self.notifier.send_message(subject, body, attachment=self.attachment)
+        self.notifier.send_message(subject, body, attachment=self.attachments)
 
     def get_pid(self):
         if self.process is not None:
@@ -84,17 +87,27 @@ class ProcessHandler:
 
             self.process.wait()
             self.end_time = time()
+
             if self.resource_monitor is not None:
-                self.resource_monitor.kill()
-                self.attachment = plot_resources_main(self.resource_monitor.log_path,
-                                                      self.resource_monitor.output_dir,
-                                                      show=False)
+                self.harvest_resource_monitor_output()
+
             self.send_notification()
 
         else:
             exit("ERROR: process already launched")
             if self.resource_monitor is not None:
                 self.resource_monitor.kill()
+
+    def harvest_resource_monitor_output(self):
+        self.resource_monitor.kill()
+
+        resource_plot_path = plot_resources_main(self.resource_monitor.log_path,
+                                                 self.resource_monitor.output_dir,
+                                                 show=False)
+        self.attachments.append(resource_plot_path)
+
+        if self.attach_full_log:
+            self.attachments.append(self.resource_monitor.log_path)
 
     def handle_exit(self, signum=None, frame=None):
         """

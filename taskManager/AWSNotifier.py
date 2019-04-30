@@ -43,7 +43,7 @@ class Notifier:
                   (self.max_cumulative_attempts, self.attempts))
             return
 
-        self.generate_message(subject=subject, body=body, subject_prefix=subject_prefix, attachment=attachment)
+        self.generate_message(subject=subject, body=body, subject_prefix=subject_prefix, attachments_paths=attachment)
 
         # The character encoding for the email.
         charset = "UTF-8"
@@ -66,7 +66,47 @@ class Notifier:
 
         self.attempts += 1
 
-    def generate_message(self, subject, body, subject_prefix=True, attachment=None):
+    def parse_attachment_argument(self, arg):
+        """
+        Allow singular string path or list
+        :param arg:
+        :return:
+        """
+        invalid_argument = False
+
+        if type(arg) is str:
+            attachments_paths = [arg]
+
+        elif type(arg) is list:
+            for item in arg:
+                if type(item) is not str:
+                    invalid_argument = True
+
+        else:
+            invalid_argument = True
+
+        if invalid_argument:
+            exit("ERROR: invalid attachment argument. Must be string or list of strings, but found: %s" % str(arg))
+
+        return arg
+
+    def encode_attachment(self, attachment_path):
+        # open the file to be sent
+        filename = os.path.basename(attachment_path)
+        attachments_paths = open(attachment_path, "rb")
+
+        attachment = MIMEBase('application', 'octet-stream')
+
+        # To change the payload into encoded form
+        attachment.set_payload(attachments_paths.read())
+
+        # encode into base64
+        encoders.encode_base64(attachment)
+        attachment.add_header('Content-Disposition', "attachment; filename= %s" % filename)
+
+        return attachment
+
+    def generate_message(self, subject, body, subject_prefix=True, attachments_paths=None):
         """Generate a message to send via the sendmail module of SMTP
         """
         if subject_prefix:
@@ -79,15 +119,16 @@ class Notifier:
         self.message['Subject'] = subject
         self.message.attach(MIMEText(body, 'plain'))
 
-        if attachment is not None:
-            # open the file to be sent
-            filename = os.path.basename(attachment)
-            attachment = open(attachment, "rb")
-            p = MIMEBase('application', 'octet-stream')
-            # To change the payload into encoded form
-            p.set_payload(attachment.read())
-            # encode into base64
-            encoders.encode_base64(p)
-            p.add_header('Content-Disposition', "attachment; filename= %s" % filename)
-            # attach the instance 'p' to instance 'msg'
-            self.message.attach(p)
+        if attachments_paths is not None:
+            args = self.parse_attachment_argument(attachments_paths)
+
+            for path in args:
+                print("Attaching file to email: %s" % path)
+                attachment = self.encode_attachment(path)
+
+                if os.stat(path).st_size > 20*1000*1000:
+                    print("File larger than 20MB not attached to email: %s")
+                    continue
+
+                # attach the instance 'attachment' to instance 'msg'
+                self.message.attach(attachment)
