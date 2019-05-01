@@ -10,6 +10,7 @@
 
 import os
 import sys
+from collections import defaultdict
 from pathlib import Path
 from py3helpers.utils import save_json, load_json, create_dot_dict
 
@@ -56,13 +57,13 @@ def query_yes_no(question, default=True):
 
     https://stackoverflow.com/questions/3041986/apt-command-line-interface-like-yes-no-input
     """
-    valid = {"yes": True, "y": True, "ye": True, "Y": True, "N": False,
+    valid = {"yes": True, "y": True, "ye": True, "yeet": True, "yerp": True, "Y": True, "N": False,
              "no": False, "n": False}
 
     if default is True:
-        prompt = " [Y/n] "
+        prompt = " [Y/n]: "
     else:
-        prompt = " [y/N] "
+        prompt = " [y/N]: "
 
     while True:
         sys.stdout.write(question + prompt)
@@ -76,9 +77,9 @@ def query_yes_no(question, default=True):
                              "(or 'y' or 'n').\n")
 
 
-def user_input_or_defualt(message, default, object_type):
+def user_input_or_default(message, default, object_type):
     """Get the user input from a message and revert to default value if user does not specify"""
-    x = input(message + " [{}]:".format(default))
+    x = input(message + " [{}]: ".format(default))
     if x is '':
         return default
     else:
@@ -99,73 +100,83 @@ def create_task_manager_config():
 def get_task_manager_config():
     """Read in taskManager config file"""
     if os.path.exists(DefaultPaths["config"]):
-        return create_dot_dict(load_json(DefaultPaths["config"]))
+        return load_json(DefaultPaths["config"])
     else:
         return DefaultArgs
 
 
+def load_config_argument(config, key):
+    if key in config:
+        return config[key]
+
+    else:
+        if sys.argv[1] != "configure":
+            print("ERROR: configuration out of date. Please reconfigure:\n")
+            create_task_manager_config()
+            print("\nConfiguration complete please rerun.")
+
+            exit()
+
+
 def prompt_user_for_config_args():
     """Prompt user for arguments for config file"""
-    config_args = DefaultArgs
+    config_args = get_task_manager_config()
 
-    if os.path.exists(DefaultPaths["config"]):
-        config_args = create_dot_dict(load_json(DefaultPaths["config"]))
-
-    config_args["sender"] = user_input_or_defualt("Sender Email", config_args["sender"], str)
+    config_args["sender"] = user_input_or_default("Sender Email", config_args.get("sender"), str)
 
     # get recipient emails
     to_emails = []
     more_emails = True
 
     while more_emails:
-        tmp_email = user_input_or_defualt("Recipient Email:", config_args["recipient"], str)
+        tmp_email = user_input_or_default("Recipient Email:", config_args.get("recipient"), str)
 
         if isinstance(tmp_email, str):
             to_emails.append(tmp_email)
             more_emails = query_yes_no("Add more emails?", False)
         else:
             more_emails = False
-            to_emails = config_args["recipient"]
+            to_emails = config_args.get("recipient")
 
     config_args["recipient"] = to_emails
 
-    config_args["aws"] = query_yes_no("Is this an aws server?", default=config_args["aws"])
+    config_args["aws"] = query_yes_no("Is this an aws server?", default=config_args.get("aws"))
 
     if not config_args["aws"]:
-        config_args["source_email"] = user_input_or_defualt(message="Source email address (if not local SMTP, not AWS)",
-                                                            default=config_args["source_email"],
+        config_args["source_email"] = user_input_or_default(message="Source email address (if not local SMTP, not AWS)",
+                                                            default=config_args.get("source_email"),
                                                             object_type=str)
 
-        config_args["source_password"] = user_input_or_defualt(message="Source password (if not local SMTP, not AWS)",
-                                                               default=config_args["source_password"],
+        config_args["source_password"] = user_input_or_default(message="Source password (if not local SMTP, not AWS)",
+                                                               default=config_args.get("source_password"),
                                                                object_type=str)
 
     config_args["resource_monitor"] = query_yes_no("Monitor Compute Resources?",
-                                                   default=config_args["resource_monitor"])
+                                                   default=config_args.get("resource_monitor"))
 
     if config_args["resource_monitor"]:
-        config_args["output_dir"] = user_input_or_defualt(message="Output dir:",
-                                                          default=config_args["output_dir"],
+        config_args["output_dir"] = user_input_or_default(message="Output dir:",
+                                                          default=config_args.get("output_dir"),
                                                           object_type=str)
 
-        config_args["interval"] = user_input_or_defualt(message="Access compute resources interval (seconds):",
-                                                        default=config_args["interval"],
+        config_args["interval"] = user_input_or_default(message="Access compute resources interval (seconds)",
+                                                        default=config_args.get("interval"),
                                                         object_type=int)
 
         config_args["attach_log"] = query_yes_no("Attach full TSV of resource usage to email?",
-                                                 default=config_args["attach_log"])
+                                                 default=config_args.get("attach_log"))
 
         if query_yes_no("Upload to S3?", default=False):
-            config_args["s3_upload_bucket"] = user_input_or_defualt(message="S3 Upload Bucket:",
-                                                                    default=config_args["s3_upload_bucket"],
+            config_args["s3_upload_bucket"] = user_input_or_default(message="S3 Upload Bucket:",
+                                                                    default=config_args.get("s3_upload_bucket"),
                                                                     object_type=str)
 
-            config_args["s3_upload_path"] = user_input_or_defualt(message="S3 Upload Path:",
+            config_args["s3_upload_path"] = user_input_or_default(message="S3 Upload Path:",
                                                                   default=config_args["s3_upload_path "],
                                                                   object_type=str)
 
-            config_args["s3_upload_interval"] = user_input_or_defualt(message="S3 Upload Interval:",
-                                                                      default=config_args["s3_upload_interval"],
+            config_args["s3_upload_interval"] = user_input_or_default(message="S3 Upload Interval:",
+                                                                      default=config_args.get("s3_upload_interval"),
                                                                       object_type=int)
 
         else:
