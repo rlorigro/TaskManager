@@ -140,7 +140,7 @@ def prompt_user_for_config_args():
 
     config_args["recipient"] = to_emails
 
-    config_args["aws"] = query_yes_no("Is this an aws server?", default=config_args.get("aws"))
+    config_args["aws"] = query_yes_no("Is this an AWS server?", default=config_args.get("aws"))
 
     if not config_args["aws"]:
         config_args["source_email"] = user_input_or_default(message="Source email address (if not local SMTP, not AWS)",
