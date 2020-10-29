@@ -172,7 +172,7 @@ def plot_resource_data(headers, data, static_data, show=False):
                 total_available += " GB"
 
             twin_axes = axes[a][b].twinx()
-            twin_axes.tick_params(axis='off', left='off', top='off', right='off', bottom='off',
+            twin_axes.tick_params(axis='both', left='off', top='off', right='off', bottom='off',
                                   labelleft='off', labeltop='off', labelright='on', labelbottom='off')
             twin_axes.set_yticks([max(y), y_max])
 

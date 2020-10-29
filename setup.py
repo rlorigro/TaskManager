@@ -27,7 +27,8 @@ def main():
                  'bin/resource_monitor.py'],
         install_requires=['psutil>=5.6.1',
                           'boto3>=1.9',
-                          'pytest>=4.3.1'],
+                          'pytest>=4.3.1',
+                          'matplotlib>=2.0.2'],
         zip_safe=True
     )
 
