@@ -166,17 +166,17 @@ class TaskManagerTests(unittest.TestCase):
             self.assertDictEqual(config_args,
                                  tm.get_task_manager_config())
 
-    # def test_send_message_with_attachment(self):
-    #     recipient = ["namefake148@gmail.com"]
-    #     sender = "namefake148@gmail.com"
-    #
-    #     notifier = Notifier.Notifier(email_recipients=recipient, email_sender=sender,
-    #                                  source_email="namefake148@gmail.com", source_password="password1234!")
-    #
-    #     subject = "Test"
-    #     body = "success\n\tasdf\nasdf"
-    #     notifier.send_message(subject, body, self.test_image)
-    #     notifier.send_message(subject, body, attachment=None)
+    def test_send_message_with_attachment(self):
+        recipient = ["namefake148@gmail.com"]
+        sender = "namefake148@gmail.com"
+
+        notifier = Notifier.Notifier(email_recipients=recipient, email_sender=sender,
+                                     source_email="namefake148@gmail.com", source_password="password1234!")
+
+        subject = "Test"
+        body = "success\n\tasdf\nasdf"
+        notifier.send_message(subject, body, self.test_image)
+        notifier.send_message(subject, body, attachment=None)
 
     # def test_aws_notifier(self):
     #     recipient = "andbaile@ucsc.edu"
