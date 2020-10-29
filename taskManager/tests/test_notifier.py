@@ -41,22 +41,22 @@ class TaskManagerTests(unittest.TestCase):
     def test_user_input_or_defualt(self):
         user_input = [5]
         with patch('builtins.input', side_effect=user_input):
-            data = tm.user_input_or_defualt("test", 10, int)
+            data = tm.user_input_or_default("test", 10, int)
             self.assertEqual(data, 5)
         user_input = ['']
         with patch('builtins.input', side_effect=user_input):
-            data = tm.user_input_or_defualt("test", 10, int)
+            data = tm.user_input_or_default("test", 10, int)
             self.assertEqual(data, 10)
         user_input = ['asdf']
         with patch('builtins.input', side_effect=user_input):
-            self.assertRaises(TypeError, tm.user_input_or_defualt, "test", 10, int)
+            self.assertRaises(TypeError, tm.user_input_or_default, "test", 10, int)
         user_input = ['asdf']
         with patch('builtins.input', side_effect=user_input):
-            data = tm.user_input_or_defualt("test", 10, str)
+            data = tm.user_input_or_default("test", 10, str)
             self.assertEqual(data, "asdf")
         user_input = ['']
         with patch('builtins.input', side_effect=user_input):
-            data = tm.user_input_or_defualt("test", 10, str)
+            data = tm.user_input_or_default("test", 10, str)
             self.assertEqual(data, 10)
 
     def test_prompt_user_for_config_args(self):
