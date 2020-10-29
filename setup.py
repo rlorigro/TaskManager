@@ -27,8 +27,7 @@ def main():
                  'bin/resource_monitor.py'],
         install_requires=['psutil>=5.6.1',
                           'boto3>=1.9',
-                          'pytest>=4.3.1',
-                          'py3helpers>=0.2.8'],
+                          'pytest>=4.3.1'],
         zip_safe=True
     )
 
