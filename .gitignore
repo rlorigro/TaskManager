@@ -5,3 +5,4 @@ output
 build
 dist
 taskManager.egg-info
+.eggs

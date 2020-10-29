@@ -14,7 +14,7 @@ from setuptools import setup, find_packages
 def main():
     setup(
         name="taskManager",
-        version="0.1.7",
+        version="0.2.0",
         description='Task manager to keep track of compute resources and send email update when command exits',
         url='https://github.com/rlorigro/TaskManager',
         author='Ryan Lorig-Roach, Andrew Bailey',
@@ -28,7 +28,7 @@ def main():
         install_requires=['psutil>=5.6.1',
                           'boto3>=1.9',
                           'pytest>=4.3.1',
-                          'py3helpers>=0.2.8'],
+                          'matplotlib>=2.0.2'],
         zip_safe=True
     )
 

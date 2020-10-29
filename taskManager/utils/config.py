@@ -12,7 +12,64 @@ import os
 import sys
 from collections import defaultdict
 from pathlib import Path
-from py3helpers.utils import save_json, load_json, create_dot_dict
+import json
+
+
+class DotDict(dict):
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+    def __init__(self, dictionary):
+        """dot.notation access to dictionary attributes for string keys ONLY!
+
+        :param dictionary: a dictionary"""
+        super(DotDict, self).__init__(dictionary)
+        for key, value in dictionary.items():
+            assert type(key) is str, "Key must be a string"
+
+
+def create_dot_dict(dictionary):
+    """Creates a dot.dictionary object and searches for internal dictionaries and turns them into dot.dictionaries
+
+    note: only searches dictionaries and lists. sets or other iterable objects are not changed
+
+    :param dictionary: a dictionary
+    """
+    # initialize dot.dict
+    dictionary = DotDict(dictionary)
+    # check if we need to change values within dictionary
+    for key, value in dictionary.items():
+        if isinstance(value, dict):
+            dictionary[key] = create_dot_dict(value)
+        if isinstance(value, list):
+            new_list = []
+            for x in value:
+                if isinstance(x, dict):
+                    new_list.append(create_dot_dict(x))
+                else:
+                    new_list.append(x)
+            dictionary[key] = new_list
+
+    return dictionary
+
+
+def load_json(path):
+    """Load a json file and make sure that path exists"""
+    path = os.path.abspath(path)
+    assert os.path.isfile(path), "Json file does not exist: {}".format(path)
+    with open(path) as json_file:
+        args = json.load(json_file)
+    return args
+
+
+def save_json(dict1, path):
+    """Save a python object as a json file"""
+    path = os.path.abspath(path)
+    with open(path, 'w') as outfile:
+        json.dump(dict1, outfile, indent=2)
+    assert os.path.isfile(path)
+    return path
 
 
 DefaultPaths = dict(home=os.path.join(str(Path.home()), ".taskmanager"),

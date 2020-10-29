@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/rlorigro/TaskManager.svg?branch=master)](https://github.com/rlorigro/TaskManager)
+[![Build Status](https://travis-ci.com/rlorigro/TaskManager.svg?branch=master)](https://github.com/rlorigro/TaskManager)
 
 # TaskManager
 Monitors resources and sends notifications. Uses AWS SES to send emails (if valid credentials exist under ~/.aws). Locally, can also send email via SMTP or gmail.
@@ -22,7 +22,6 @@ You can plot log files to generate the same image using `plot_resource_usage.py`
 python3:
   - psutil
   - boto3 (for AWS compatibility)
-  - [py3helpers](https://github.com/adbailey4/python_utils) 
  
 ### Compatibility
 - ubuntu 18
