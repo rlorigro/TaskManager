@@ -51,6 +51,7 @@ def get_instance_identification():
         instance_data = subprocess.check_output(
             ["curl", "--silent", "http://169.254.169.254/latest/dynamic/instance-identity/document"])
         # convert from json to dict
+        if "bytes" in str(type(instance_data)): instance_data = instance_data.decode()
         instance_data = json.loads(instance_data)
         # get the instanceId
         if 'instanceId' in instance_data:

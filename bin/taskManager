@@ -44,6 +44,11 @@ def main():
     subparsers.required = True
     config = get_task_manager_config()
 
+    # skip parsing args if run mode is "configure"
+    if sys.argv[1] == "configure":
+        create_task_manager_config()
+        exit()
+
     # parsers for running the full pipeline
     run_parser = subparsers.add_parser("run", help="Run command, track memory, cpu and IO usage. "
                                                    "Send email when command exits")
@@ -73,7 +78,7 @@ def main():
     run_parser.add_argument("--to",
                             dest="recipient",
                             required=False,
-                            default=config["recipient"],
+                            default=load_config_argument(config, "recipient"),
                             type=comma_separated_list,
                             help="A comma separted list of email recipients "
                                  "(ie '--to  user1@domain.com,user2@domain.com'). "
@@ -81,66 +86,66 @@ def main():
     run_parser.add_argument("--from",
                             dest="sender",
                             required=False,
-                            default=config["sender"],
+                            default=load_config_argument(config, "sender"),
                             type=str,
                             help="The email sender. For AWS, this must be validated within SES console")
     run_parser.add_argument("--monitor",
                             required=False,
-                            default=config["resource_monitor"],
+                            default=load_config_argument(config, "resource_monitor"),
                             type=bool,
                             dest="resource_monitor",
                             help="Monitor compute resources while running command. Default: True")
     run_parser.add_argument("--attach_log",
                             required=False,
-                            default=config["attach_log"],
+                            default=load_config_argument(config, "attach_log"),
                             type=bool,
                             dest="attach_log",
                             help="Attach full tsv log of resource usage to the email notification. Default: False")
     run_parser.add_argument("--aws",
                             required=False,
-                            default=config["aws"],
+                            default=load_config_argument(config, "aws"),
                             action='store_true',
                             help="If set, will use AWS SES if not set and source_email/source_password are not "
                                  "set will use simple local SMTP server")
     run_parser.add_argument('--output_dir',
                             dest='output_dir',
-                            default=config["output_dir"],
+                            default=load_config_argument(config, "output_dir"),
                             type=str,
                             help="Output folder to place memory/cpu/IO usage log")
     run_parser.add_argument('--source_email',
                             dest='source_email',
                             required=False,
-                            default=config["source_email"],
+                            default=load_config_argument(config, "source_email"),
                             type=str,
                             help="gmail source email")
     run_parser.add_argument('--source_password',
                             dest='source_password',
                             required=False,
-                            default=config["source_password"],
+                            default=load_config_argument(config, "source_password"),
                             type=str,
                             help="password to source email to send email via gmail")
     run_parser.add_argument('--interval',
                             dest='interval',
                             required=False,
-                            default=config["interval"],
+                            default=load_config_argument(config, "interval"),
                             type=int,
                             help="interval (in seconds) for sampling mem/cpu/IO usage")
     run_parser.add_argument('--s3_upload_interval',
                             dest='s3_upload_interval',
                             required=False,
-                            default=config["s3_upload_interval"],
+                            default=load_config_argument(config, "s3_upload_interval"),
                             type=int,
                             help="Interval (in seconds) for uploading log to S3 bucket")
     run_parser.add_argument('--s3_upload_bucket',
                             dest='s3_upload_bucket',
                             required=False,
-                            default=config["s3_upload_bucket"],
+                            default=load_config_argument(config, "s3_upload_bucket"),
                             type=str,
                             help="bucket (s3:// is not required) for file uploading.  Setting this triggers upload.")
     run_parser.add_argument('--s3_upload_path',
                             dest='s3_upload_path',
                             required=False,
-                            default=config["s3_upload_path"],
+                            default=load_config_argument(config, "s3_upload_path"),
                             type=str,
                             help="s3 location (no bucket) where logs should be uploaded.  "
                                  "Can use custom python formatting parameters (need ':' prepended) including: "
@@ -148,42 +153,38 @@ def main():
                                  "Default: 'logs/resource_monitor/{date}_{instance_id}/' ")
     args = parser.parse_args()
 
-    if args.command == "configure":
-        create_task_manager_config()
+    monitor = None
+    assert args.sender is not None, "Must select an email sender. " \
+                                    "Setup taskManager via 'taskManager configure' or set `--from` "
+    assert args.recipient is not None, "Must select email recipient. " \
+                                       "Setup taskManager via'taskManager configure' or set `--to` "
 
-    elif args.command == "run":
-        monitor = None
-        assert args.sender is not None, "Must select an email sender. " \
-                                        "Setup taskManager via 'taskManager configure' or set `--from` "
-        assert args.recipient is not None, "Must select email recipient. " \
-                                           "Setup taskManager via'taskManager configure' or set `--to` "
+    if args.resource_monitor:
+        # create resource monitoring class
+        monitor = ResourceMonitor(output_dir=args.output_dir,
+                                  interval=args.interval,
+                                  aws=args.aws,
+                                  s3_upload_bucket=args.s3_upload_bucket,
+                                  s3_upload_path=args.s3_upload_path,
+                                  s3_upload_interval=args.s3_upload_interval)
 
-        if args.resource_monitor:
-            # create resource monitoring class
-            monitor = ResourceMonitor(output_dir=args.output_dir,
-                                      interval=args.interval,
-                                      aws=args.aws,
-                                      s3_upload_bucket=args.s3_upload_bucket,
-                                      s3_upload_path=args.s3_upload_path,
-                                      s3_upload_interval=args.s3_upload_interval)
+    # initialize process handler
+    handler = ProcessHandler(aws=args.aws,
+                             email_sender=args.sender,
+                             email_recipients=args.recipient,
+                             source_email=args.source_email,
+                             source_password=args.source_password,
+                             resource_monitor=monitor,
+                             attach_full_log=args.attach_log)
 
-        # initialize process handler
-        handler = ProcessHandler(aws=args.aws,
-                                 email_sender=args.sender,
-                                 email_recipients=args.recipient,
-                                 source_email=args.source_email,
-                                 source_password=args.source_password,
-                                 resource_monitor=monitor,
-                                 attach_full_log=args.attach_log)
+    # update signal handling rule with the process handler's member functions
+    signal.signal(signal.SIGTERM, handler.handle_exit)
+    signal.signal(signal.SIGINT, handler.handle_exit)
 
-        # update signal handling rule with the process handler's member functions
-        signal.signal(signal.SIGTERM, handler.handle_exit)
-        signal.signal(signal.SIGINT, handler.handle_exit)
-
-        # Launch process via the process handler
-        handler.launch_process(args.run_command,
-                               redirect_stdout=args.redirect_stdout,
-                               redirect_stderr=args.redirect_stderr)
+    # Launch process via the process handler
+    handler.launch_process(args.run_command,
+                           redirect_stdout=args.redirect_stdout,
+                           redirect_stderr=args.redirect_stderr)
 
 
 if __name__ == "__main__":
