@@ -45,7 +45,7 @@ def main():
     config = get_task_manager_config()
 
     # skip parsing args if run mode is "configure"
-    if sys.argv[1] == "configure":
+    if len(sys.argv) > 1 and sys.argv[1] == "configure":
         create_task_manager_config()
         exit()
 
