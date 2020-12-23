@@ -14,7 +14,7 @@ from setuptools import setup, find_packages
 def main():
     setup(
         name="taskManager",
-        version="0.2.1",
+        version="0.2.2",
         description='Task manager to keep track of compute resources and send email update when command exits',
         url='https://github.com/rlorigro/TaskManager',
         author='Ryan Lorig-Roach, Andrew Bailey',
