@@ -100,9 +100,6 @@ class ResourceMonitor:
 
         self.log_path = os.path.join(self.output_dir, self.log_filename)
 
-        self.primary_partition = None
-        self.set_primary_partition(self.find_unix_primary_partition())
-
         self.history_size = max(1, int(round(alarm_interval / interval)))
         self.history = deque()
         self.update_history(self.get_resource_data())
@@ -209,22 +206,6 @@ class ResourceMonitor:
 
         return disk_partitions
 
-    def set_primary_partition(self, partition_name):
-        partition_name = os.path.basename(partition_name)
-        self.primary_partition = partition_name
-
-    @staticmethod
-    def find_unix_primary_partition():
-        primary_partition = None
-        disk_partitions = psutil.disk_partitions()
-
-        for partition in disk_partitions:
-            if partition.mountpoint == "/":
-                primary_partition = partition.device
-                break
-
-        return primary_partition
-
     def write_static_data(self):
         with open(self.log_path, "a") as file:
             line = self.format_data_as_line(self.static_headers, self.static_data)
@@ -271,13 +252,11 @@ class ResourceMonitor:
         swap_memory = psutil.swap_memory()
         data["swap_memory_percent"] = swap_memory.percent
 
-        io_activity = psutil.disk_io_counters(perdisk=True)
-        if len(io_activity.keys()) == 1:
-            self.primary_partition = list(io_activity.keys())[0]
-        data["io_activity_read_mb"] = io_activity[self.primary_partition].read_bytes / (1024 ** 2)
-        data["io_activity_write_mb"] = io_activity[self.primary_partition].write_bytes / (1024 ** 2)
-        data["io_activity_read_count"] = io_activity[self.primary_partition].read_count
-        data["io_activity_write_count"] = io_activity[self.primary_partition].write_count
+        io_activity = psutil.disk_io_counters()
+        data["io_activity_read_mb"] = io_activity.read_bytes / (1024 ** 2)
+        data["io_activity_write_mb"] = io_activity.write_bytes / (1024 ** 2)
+        data["io_activity_read_count"] = io_activity.read_count
+        data["io_activity_write_count"] = io_activity.write_count
 
         disk_usage = psutil.disk_usage("/")
         data["disk_usage_percent"] = disk_usage.percent

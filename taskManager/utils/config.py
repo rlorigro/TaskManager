@@ -137,7 +137,7 @@ def query_yes_no(question, default=True):
 def user_input_or_default(message, default, object_type):
     """Get the user input from a message and revert to default value if user does not specify"""
     x = input(message + " [{}]: ".format(default))
-    if x is '':
+    if x == '':
         return default
     else:
         try:
