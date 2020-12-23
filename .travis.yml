@@ -3,10 +3,36 @@ notifications:
   slack:
     secure: yAfLj2m4akD69hJYJJxn96FVkP51eoWW1yC7jFLUxsBy3hDWRnFwegoPT4z76QwSvRZBwR0UY6n9WLLng7UhMzt0Q2Lf+bEP9yeFE+Lte8FFsmVY9DQ9MKlE2D/mqr89o1M51MKHExcHZaNzm/n0skStYa4RgTl5cCSe3gziFJfaZUu0uaUiCldpCsy3knYMxPTiFN98VxXN3Irj4Mn7Ong8k6eW8s6lkIAG7oA8uZ8syOAYrsEGOwO5E2V7/DnzHSz7v5Ba0kffzG9gCwFaJzdhkgof7axMev9ym/CXQjbaX9g3v8jL2MLwOyWT0nkdQSNcun1HGQuVxgqNrwFUiigjXo1NTd25vG2TPyTbvINah4NMTwGce1wnALtIdWzP5PBs5wMSG7qQGbFt4Xl6KRVBI4JHSRIlxGd8JZJiHosW5Wf9CO3TFONGJM5IwFTbIth4aZUsz+DTWedrOPn2wCAYUlTpG7/20qb/xQcQAnjpt6bHPH2kaiGmY7VJSkyLPqJ1QM7Tko0fluK+njH8+KbuOHCRBTwXbQf1i+LtDsRy7ZPQBiO26FJ3CBw1CF1VUcFJX/tCJpT8qeHAP+F/v6fBLrmNPLJi9UtsxI4pF/ruYkV8pNR7aJKcFxEV20BUPpiggj7rXX/x7DR7fPxV/EtbAnNPcv8yz6tj10b31P4=
   email: false
-sudo: required
-os:
-- linux
-- osx
+
+env:
+  global:
+    secure: Xcao3XJ9zYVyk2Lim9PbIqyIGkrHpIm6fjFBpWU4ZywVZ6vIp17+aKbFd14uyeCJV90TobzszouRv2jDSJnQVxezoFHSZHaZug1fPH13d+cyARuwOaFz4mgTPAd34tTXSMc9rsz9OhjNdyYbLIoSkCcg6YEmIJARKvXpADjrgLO7CCRuQ09VY9TiU4K2FKdPfBTu6WSUXFyJmS6D2GpOpiKUdBRtiQIvuR+e/9LlYa7AVNSq2U7lYdoL8WRqW+hGyxTXuP2TtsTNguEwvalrRf+wBmOeeaxL9CoSbLYCuSSQD9uMv1uE/SyW3SrYlUsoCsNkvCKi/UG09dpTpT08ztGTWIE+y6e0r8uHpxQ2DlL1THMu/vDAWFisYE9rcCvbqVNuokcucaQ4BRK0iOD7OJiW1z8FWTFgQ/ylNyBuPFkOV7MbV8BIipDBH/ncruXMc/pbWDMfNkZGfBfJ+mTUEH2CQ2KoAtH27AZx8j5bUQNP0CI+weGTZOaauUOHautcQRzsqBvTVjIwNyAN7yM2kLLZlVRPO73MdifkoqPU4mp8/YzFjT5HQVvo5BaQb7Ywl1MAYtloxKgKmPvi2ocHNODEw/Dn7iP8oVK6n3/I7Be9qYo/lVKPY1G+hCShiSJeY9DHUrwbPKejltzNqdrRPioT3fKYISuuipYzl6uVi00=
+
+jobs:
+  include:
+    - stage: test
+      os: linux
+    - stage: test
+      os: osx
+    - stage: PyPi Release
+      script: echo "Deploying to PyPi ..."
+      deploy:
+        provider: pypi
+        username: __token__
+        password:
+          secure: I8P3L8fEHJJ/N2DJA1bqG3qZyDkNw1MxF0suVBr2pLQFKT9GJ6I2eNh+gpsVi960647h79hETQs+/wNG02QQRPTwzIqSQ2E8LDz2EgcqHN5A4umD+XnJe2Lti7hU4l/eokZrCPFnbc+On1hFBp1KJBI03r+8ARMvJSIfy7Rh4o/f5DPZIZZo9bkMU0xZJygm9UN508QdkW9wmw/lOyyn09CmnxYGJKZayXazi0Pu9jMvfyPYVKI7YAL8zCf35aiDfKoFwVBMLPfR0AOmya+qKpsdqjwX2m6gqFtQUj4246099bD7JeNz59j0+q8X2gFj5wcq8vt98/a41vyojye3MylMiOCmEcP1x9o9PiKMXapptKV3Lp+MtAIz4FHWz6idpKstn5nnITJModObcqxSiI5YsDSFiPeyWHBe4BefrEMJqI7EyvZlhU4/vwwmGzQ9oVlaKwMwWMIS83OP8hDpJzk9bwO4IDlq9jmlXwT1phoZlWW51RYRcOwj781c9IpwbwETW6ENWwz60dnWZv/Ttpg2vvFlHDsmt2vKqI9sfyqmveveNxv0C7s00PLojVeDRVgFLgfD1SvezYF6dkKYl/zm9jasDqUUVi7wSMIeF34E9kE2HBIhcZqwd1TMc3hjSIeDRx8/t0g/KdQRXbKkkaZ7ZgghjvlHc5aHA7rzUng=
+        on:
+          tags: true
+
+    - stage: GitHub Release
+      script: echo "Deploying to GitHub releases ..."
+      deploy:
+        provider: releases
+        api_key: $GITHUB_OAUTH_TOKEN
+        skip_cleanup: true
+        on:
+          tags: true
+
 install:
 - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then MINICONDA_OS=Linux; sudo apt-get update
   -qq; else MINICONDA_OS=MacOSX; fi
