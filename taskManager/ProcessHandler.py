@@ -30,9 +30,11 @@ class ProcessHandler:
 
         if aws:
             self.notifier = AWSNotifier(email_sender=email_sender, email_recipients=self.email_recipients)
-        else:
+        elif email_sender is not None:
             self.notifier = Notifier(email_sender=email_sender, email_recipients=self.email_recipients,
                                      source_password=self.source_password, source_email=self.source_email)
+        else:
+            self.notifier = None
 
         self.resource_monitor = resource_monitor
         if self.resource_monitor is not None:
@@ -91,7 +93,8 @@ class ProcessHandler:
             if self.resource_monitor is not None:
                 self.harvest_resource_monitor_output()
 
-            self.send_notification()
+            if self.notifier is not None:
+                self.send_notification()
 
         else:
             exit("ERROR: process already launched")
@@ -118,7 +121,9 @@ class ProcessHandler:
         :return:
         """
         self.end_time = time()
-        self.send_notification()
+
+        if self.notifier is not None:
+            self.send_notification()
 
         sys.stderr.write("\nERROR: script terminated or interrupted killing subprocess: %d\n" % self.process.pid)
 

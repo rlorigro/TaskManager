@@ -41,8 +41,7 @@ class Notifier:
                                                  "gmail credentials with --source_email and --source_password.")
 
             else:
-                raise ConnectionRefusedError("Failed to connect to SMTP localhost. If on aws set --aws or use "
-                                             "gmail with --source_email and --source_password.")
+                raise ConnectionRefusedError("No email settings provided.")
         return server
 
     def generate_message(self, subject, body, subject_prefix=True, attachments_paths=None):
